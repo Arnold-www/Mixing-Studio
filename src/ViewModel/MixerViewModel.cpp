@@ -10,7 +10,18 @@ MixerViewModel::MixerViewModel(AudioEngine *audioEngine, QObject *parent)
     , m_audioEngine(audioEngine)
 {
     connect(m_audioEngine, &AudioEngine::playbackStateChanged, this, &MixerViewModel::playingChanged);
+    connect(m_audioEngine, &AudioEngine::playbackStateChanged, this, &MixerViewModel::updatePlaybackTimer);
     connect(m_audioEngine, &AudioEngine::statusMessageChanged, this, &MixerViewModel::setStatusMessage);
+
+    m_playbackTimer.setInterval(1000);
+    connect(&m_playbackTimer, &QTimer::timeout, this, [this]() {
+        if (m_positionSeconds >= m_durationSeconds) {
+            stop();
+            return;
+        }
+
+        setPositionSeconds(m_positionSeconds + 1);
+    });
 }
 
 QQmlListProperty<TrackViewModel> MixerViewModel::tracks()
@@ -33,6 +44,30 @@ float MixerViewModel::masterVolume() const
     return m_masterVolume;
 }
 
+int MixerViewModel::positionSeconds() const
+{
+    return m_positionSeconds;
+}
+
+int MixerViewModel::durationSeconds() const
+{
+    return m_durationSeconds;
+}
+
+float MixerViewModel::playbackProgress() const
+{
+    if (m_durationSeconds <= 0) {
+        return 0.0f;
+    }
+
+    return static_cast<float>(m_positionSeconds) / static_cast<float>(m_durationSeconds);
+}
+
+QString MixerViewModel::playbackTimeText() const
+{
+    return QStringLiteral("%1 / %2").arg(formatTime(m_positionSeconds), formatTime(m_durationSeconds));
+}
+
 void MixerViewModel::importMockTrack()
 {
     const QString name = QStringLiteral("Track %1").arg(m_tracks.size() + 1);
@@ -53,6 +88,7 @@ void MixerViewModel::pause()
 void MixerViewModel::stop()
 {
     m_audioEngine->stop();
+    setPositionSeconds(0);
 }
 
 void MixerViewModel::setMasterVolume(float volume)
@@ -65,6 +101,12 @@ void MixerViewModel::setMasterVolume(float volume)
     m_masterVolume = clamped;
     m_audioEngine->setMasterVolume(m_masterVolume);
     emit masterVolumeChanged();
+}
+
+void MixerViewModel::seekToProgress(float progress)
+{
+    const float clamped = std::clamp(progress, 0.0f, 1.0f);
+    setPositionSeconds(static_cast<int>(clamped * m_durationSeconds));
 }
 
 void MixerViewModel::addTrack(const QString &name)
@@ -81,6 +123,36 @@ void MixerViewModel::setStatusMessage(const QString &message)
 
     m_statusMessage = message;
     emit statusMessageChanged();
+}
+
+void MixerViewModel::setPositionSeconds(int positionSeconds)
+{
+    const int clamped = std::clamp(positionSeconds, 0, m_durationSeconds);
+    if (m_positionSeconds == clamped) {
+        return;
+    }
+
+    m_positionSeconds = clamped;
+    emit playbackPositionChanged();
+}
+
+void MixerViewModel::updatePlaybackTimer()
+{
+    if (playing()) {
+        m_playbackTimer.start();
+        return;
+    }
+
+    m_playbackTimer.stop();
+}
+
+QString MixerViewModel::formatTime(int seconds) const
+{
+    const int minutes = seconds / 60;
+    const int remainingSeconds = seconds % 60;
+    return QStringLiteral("%1:%2")
+        .arg(minutes)
+        .arg(remainingSeconds, 2, 10, QLatin1Char('0'));
 }
 
 qsizetype MixerViewModel::trackCount(QQmlListProperty<TrackViewModel> *property)

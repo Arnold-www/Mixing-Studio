@@ -8,69 +8,120 @@ ApplicationWindow {
     height: 720
     visible: true
     title: "Mixing Studio"
+    color: "#f7f8fa"
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 12
-
-        Label {
-            text: "Mixing Studio - MVVM Skeleton"
-            font.pixelSize: 26
-            font.bold: true
-        }
+        anchors.margins: 18
+        spacing: 14
 
         RowLayout {
-            spacing: 8
+            Layout.fillWidth: true
+            spacing: 12
 
-            Button {
-                text: "Import Mock Track"
-                onClicked: mixerViewModel.importMockTrack()
-            }
-
-            Button {
-                text: mixerViewModel.playing ? "Pause" : "Play"
-                onClicked: mixerViewModel.playing ? mixerViewModel.pause() : mixerViewModel.play()
-            }
-
-            Button {
-                text: "Stop"
-                onClicked: mixerViewModel.stop()
+            Label {
+                text: "Mixing Studio"
+                font.pixelSize: 28
+                font.bold: true
+                color: "#18202a"
+                Layout.fillWidth: true
             }
 
             Label {
-                text: "Master"
-            }
-
-            Slider {
-                from: 0.0
-                to: 1.0
-                value: mixerViewModel.masterVolume
-                onMoved: mixerViewModel.masterVolume = value
-                Layout.preferredWidth: 180
+                text: mixerViewModel.statusMessage
+                color: "#4b5563"
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignRight
+                Layout.preferredWidth: 420
             }
         }
 
-        Label {
-            text: mixerViewModel.statusMessage
-            color: "#666666"
+        Rectangle {
+            Layout.fillWidth: true
+            height: 112
+            radius: 8
+            color: "#ffffff"
+            border.color: "#d8dee8"
+
+            GridLayout {
+                anchors.fill: parent
+                anchors.margins: 14
+                columns: 5
+                columnSpacing: 12
+                rowSpacing: 10
+
+                Button {
+                    text: "Import Mock Track"
+                    Layout.preferredWidth: 150
+                    onClicked: mixerViewModel.importMockTrack()
+                }
+
+                Button {
+                    text: mixerViewModel.playing ? "Pause" : "Play"
+                    Layout.preferredWidth: 96
+                    onClicked: mixerViewModel.playing ? mixerViewModel.pause() : mixerViewModel.play()
+                }
+
+                Button {
+                    text: "Stop"
+                    Layout.preferredWidth: 82
+                    onClicked: mixerViewModel.stop()
+                }
+
+                Label {
+                    text: "Master"
+                    color: "#374151"
+                    horizontalAlignment: Text.AlignRight
+                    Layout.preferredWidth: 70
+                }
+
+                Slider {
+                    from: 0.0
+                    to: 1.0
+                    value: mixerViewModel.masterVolume
+                    onMoved: mixerViewModel.masterVolume = value
+                    Layout.fillWidth: true
+                }
+
+                Label {
+                    text: mixerViewModel.playbackTimeText
+                    color: "#374151"
+                    font.family: "Menlo"
+                    Layout.preferredWidth: 150
+                }
+
+                Slider {
+                    from: 0.0
+                    to: 1.0
+                    value: mixerViewModel.playbackProgress
+                    onMoved: mixerViewModel.seekToProgress(value)
+                    Layout.columnSpan: 4
+                    Layout.fillWidth: true
+                }
+            }
         }
 
-        Frame {
+        Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            radius: 8
+            color: "#ffffff"
+            border.color: "#d8dee8"
 
             ListView {
+                id: trackList
                 anchors.fill: parent
+                anchors.margins: 12
                 spacing: 8
                 model: mixerViewModel.tracks
+                clip: true
 
                 delegate: Rectangle {
                     width: ListView.view.width
-                    height: 96
+                    height: 104
                     radius: 8
-                    color: "#f3f4f6"
-                    border.color: "#d1d5db"
+                    color: "#f6f8fb"
+                    border.color: "#d7dde7"
 
                     RowLayout {
                         anchors.fill: parent
@@ -80,11 +131,14 @@ ApplicationWindow {
                         Label {
                             text: modelData.name
                             font.bold: true
-                            Layout.preferredWidth: 120
+                            color: "#18202a"
+                            elide: Text.ElideRight
+                            Layout.preferredWidth: 130
                         }
 
                         Label {
                             text: "Volume"
+                            color: "#4b5563"
                         }
 
                         Slider {
@@ -97,6 +151,7 @@ ApplicationWindow {
 
                         Label {
                             text: "Pan"
+                            color: "#4b5563"
                         }
 
                         Slider {
@@ -111,14 +166,23 @@ ApplicationWindow {
                             text: "Mute"
                             checked: modelData.muted
                             onToggled: modelData.muted = checked
+                            Layout.preferredWidth: 86
                         }
 
                         CheckBox {
                             text: "Solo"
                             checked: modelData.solo
                             onToggled: modelData.solo = checked
+                            Layout.preferredWidth: 78
                         }
                     }
+                }
+
+                Label {
+                    anchors.centerIn: parent
+                    visible: trackList.count === 0
+                    text: "Import a mock track to start building the mix."
+                    color: "#6b7280"
                 }
             }
         }
