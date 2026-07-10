@@ -68,6 +68,11 @@ QString MixerViewModel::playbackTimeText() const
     return QStringLiteral("%1 / %2").arg(formatTime(m_positionSeconds), formatTime(m_durationSeconds));
 }
 
+bool MixerViewModel::anySolo() const
+{
+    return m_anySolo;
+}
+
 void MixerViewModel::importMockTrack()
 {
     const QString name = QStringLiteral("Track %1").arg(m_tracks.size() + 1);
@@ -111,7 +116,10 @@ void MixerViewModel::seekToProgress(float progress)
 
 void MixerViewModel::addTrack(const QString &name)
 {
-    m_tracks.append(new TrackViewModel(name, this));
+    auto *track = new TrackViewModel(name, this);
+    connect(track, &TrackViewModel::soloChanged, this, &MixerViewModel::refreshSoloState);
+    m_tracks.append(track);
+    refreshSoloState();
     emit tracksChanged();
 }
 
@@ -144,6 +152,24 @@ void MixerViewModel::updatePlaybackTimer()
     }
 
     m_playbackTimer.stop();
+}
+
+void MixerViewModel::refreshSoloState()
+{
+    const bool previousAnySolo = m_anySolo;
+    m_anySolo = std::any_of(m_tracks.cbegin(), m_tracks.cend(), [](const TrackViewModel *track) {
+        return track->solo();
+    });
+
+    for (auto *track : m_tracks) {
+        track->setBlockedBySolo(m_anySolo && !track->solo());
+    }
+
+    if (previousAnySolo != m_anySolo) {
+        emit soloStateChanged();
+        setStatusMessage(m_anySolo ? QStringLiteral("Solo monitoring enabled.")
+                                   : QStringLiteral("Solo monitoring cleared."));
+    }
 }
 
 QString MixerViewModel::formatTime(int seconds) const

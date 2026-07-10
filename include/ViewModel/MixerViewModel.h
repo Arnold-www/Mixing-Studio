@@ -19,6 +19,7 @@ class MixerViewModel : public QObject
     Q_PROPERTY(int durationSeconds READ durationSeconds NOTIFY durationChanged)
     Q_PROPERTY(float playbackProgress READ playbackProgress NOTIFY playbackPositionChanged)
     Q_PROPERTY(QString playbackTimeText READ playbackTimeText NOTIFY playbackPositionChanged)
+    Q_PROPERTY(bool anySolo READ anySolo NOTIFY soloStateChanged)
 
 public:
     explicit MixerViewModel(AudioEngine *audioEngine, QObject *parent = nullptr);
@@ -31,6 +32,7 @@ public:
     int durationSeconds() const;
     float playbackProgress() const;
     QString playbackTimeText() const;
+    bool anySolo() const;
 
 public slots:
     void importMockTrack();
@@ -47,12 +49,14 @@ signals:
     void masterVolumeChanged();
     void playbackPositionChanged();
     void durationChanged();
+    void soloStateChanged();
 
 private:
     void addTrack(const QString &name);
     void setStatusMessage(const QString &message);
     void setPositionSeconds(int positionSeconds);
     void updatePlaybackTimer();
+    void refreshSoloState();
     QString formatTime(int seconds) const;
 
     static qsizetype trackCount(QQmlListProperty<TrackViewModel> *property);
@@ -64,5 +68,6 @@ private:
     float m_masterVolume = 1.0f;
     int m_positionSeconds = 0;
     int m_durationSeconds = 180;
+    bool m_anySolo = false;
     QTimer m_playbackTimer;
 };

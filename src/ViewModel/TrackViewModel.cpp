@@ -34,6 +34,39 @@ bool TrackViewModel::solo() const
     return m_solo;
 }
 
+bool TrackViewModel::audible() const
+{
+    return !m_muted && !m_blockedBySolo;
+}
+
+QString TrackViewModel::volumeText() const
+{
+    return QStringLiteral("%1%").arg(static_cast<int>(m_volume * 100.0f));
+}
+
+QString TrackViewModel::panText() const
+{
+    if (qFuzzyIsNull(m_pan)) {
+        return QStringLiteral("C");
+    }
+
+    const QString side = m_pan < 0.0f ? QStringLiteral("L") : QStringLiteral("R");
+    return QStringLiteral("%1%2").arg(side).arg(static_cast<int>(std::abs(m_pan) * 100.0f));
+}
+
+void TrackViewModel::setBlockedBySolo(bool blockedBySolo)
+{
+    if (m_blockedBySolo == blockedBySolo) {
+        return;
+    }
+
+    const bool wasAudible = audible();
+    m_blockedBySolo = blockedBySolo;
+    if (wasAudible != audible()) {
+        emit audibleChanged();
+    }
+}
+
 void TrackViewModel::setVolume(float volume)
 {
     const float clamped = std::clamp(volume, 0.0f, 1.0f);
@@ -62,8 +95,12 @@ void TrackViewModel::setMuted(bool muted)
         return;
     }
 
+    const bool wasAudible = audible();
     m_muted = muted;
     emit mutedChanged();
+    if (wasAudible != audible()) {
+        emit audibleChanged();
+    }
 }
 
 void TrackViewModel::setSolo(bool solo)

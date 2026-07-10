@@ -120,8 +120,9 @@ ApplicationWindow {
                     width: ListView.view.width
                     height: 104
                     radius: 8
-                    color: "#f6f8fb"
-                    border.color: "#d7dde7"
+                    color: modelData.audible ? "#f6f8fb" : "#eef1f5"
+                    border.color: modelData.solo ? "#2f7d6d" : "#d7dde7"
+                    opacity: modelData.audible ? 1.0 : 0.72
 
                     RowLayout {
                         anchors.fill: parent
@@ -150,6 +151,14 @@ ApplicationWindow {
                         }
 
                         Label {
+                            text: modelData.volumeText
+                            color: "#374151"
+                            font.family: "Menlo"
+                            horizontalAlignment: Text.AlignRight
+                            Layout.preferredWidth: 46
+                        }
+
+                        Label {
                             text: "Pan"
                             color: "#4b5563"
                         }
@@ -160,6 +169,14 @@ ApplicationWindow {
                             value: modelData.pan
                             onMoved: modelData.pan = value
                             Layout.preferredWidth: 160
+                        }
+
+                        Label {
+                            text: modelData.panText
+                            color: "#374151"
+                            font.family: "Menlo"
+                            horizontalAlignment: Text.AlignRight
+                            Layout.preferredWidth: 46
                         }
 
                         CheckBox {
