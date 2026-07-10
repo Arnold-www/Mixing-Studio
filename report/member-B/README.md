@@ -41,7 +41,7 @@
 - 人工修改内容：确认当前分支作为 B 侧开发分支继续推进。
 - 自测结果：规划阶段不涉及构建。
 - 成员 A 交叉测试结果：待成员 A 后续检查 B 侧接口边界。
-- 对应提交：待提交后补充。
+- 对应提交：`d7704c2`
 - 可放入报告的证据：本文件、`report/shared/AI_USAGE_LOG.md`、后续 git 提交历史。
 
 ## B 侧阶段拆分
@@ -71,3 +71,22 @@
 - 成员 A 交叉测试结果：待成员 A 后续检查 QML 是否只通过 ViewModel 绑定。
 - 对应提交：`f7245af`
 - 可放入报告的证据：`MixerViewModel` 播放状态属性、`Main.qml` 调音台骨架、`git diff --check` 结果、Qt6 缺失的 CMake 输出摘要。
+
+## 阶段 2：轨道控制状态机
+
+- 日期：2026-07-10
+- 使用的大模型：Codex
+- 采用模式：AI 主导代码生成，人工通过构建结果和差异审查确认。
+- 提示词摘要：继续推进 B 侧 TrackViewModel/MixerViewModel，实现更完整的轨道控制状态机和 QML 回显。
+- AI 输出内容：
+  - `TrackViewModel` 增加 `audible`、`volumeText`、`panText`，用于 UI 回显和状态表达。
+  - `TrackViewModel` 在 Mute 状态变化时同步发出 `audibleChanged`。
+  - `MixerViewModel` 增加 `anySolo` 和 Solo 刷新逻辑，实现 Solo 轨道监听时自动屏蔽非 Solo 轨道。
+  - `Main.qml` 根据 `audible` 和 `solo` 调整轨道视觉状态，并显示音量百分比和 Pan 文本。
+- 人工修改内容：确认 Solo 规则放在 MixerViewModel，单轨参数显示放在 TrackViewModel，QML 只做绑定和渲染。
+- 自测结果：
+  - 已运行 `git diff --check`，未发现空白或补丁格式问题。
+  - 已运行 `cmake --build build-qt`，构建通过。
+- 成员 A 交叉测试结果：待成员 A 检查 ViewModel/QML 是否越过 Model，Solo/Mute 规则是否符合接口预期。
+- 对应提交：`7a25348`
+- 可放入报告的证据：`TrackViewModel::audible()`、`MixerViewModel::refreshSoloState()`、QML 轨道状态回显、构建通过记录。

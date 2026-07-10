@@ -4,22 +4,25 @@
 
 ## 构建环境
 
-- 操作系统：
-- Qt 版本：
-- CMake 版本：
-- 编译器：
+- 操作系统：macOS 15.7.4
+- Qt 版本：Qt 6.11.1，通过 Homebrew `qtdeclarative` 安装，包含本项目需要的 Qt QML、Qt Quick、Qt Quick Controls 2。
+- CMake 版本：4.3.4
+- 编译器：Apple clang 17.0.0
 - 构建命令：
 
-```powershell
-cmake -S . -B build
-cmake --build build
+```bash
+cmake -S . -B build-qt -DCMAKE_PREFIX_PATH=/opt/homebrew
+cmake --build build-qt
 ```
+
+- 说明：未安装完整 `qt` 元包；当前最小可用路径为 `brew install qtdeclarative`。该命令会安装 `qtbase`、`qtsvg` 等必要依赖。
 
 ## 测试记录
 
 | 日期 | 测试类型 | 测试对象 | 命令/步骤 | 结果 | 问题 | 修复提交 |
 | :--- | :------- | :------- | :-------- | :--- | :--- | :------- |
-|      |          |          |           |      |      |          |
+| 2026-07-10 | 构建测试 | Qt/CMake 工具链 | `cmake -S . -B build-qt -DCMAKE_PREFIX_PATH=/opt/homebrew` | 通过 | 初始环境缺少 Qt6；安装 `qtdeclarative` 后通过 | `7739f16` |
+| 2026-07-10 | 构建测试 | B 侧阶段 2 ViewModel/QML | `cmake --build build-qt` | 通过 | 无 | `7a25348` |
 
 ## 报告截图清单
 
