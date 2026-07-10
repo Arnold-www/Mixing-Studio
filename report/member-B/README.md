@@ -109,3 +109,22 @@
 - 成员 A 交叉测试结果：待成员 A 检查可视化数据是否只来自 ViewModel，后续对接真实分析数据。
 - 对应提交：`10f525b`
 - 可放入报告的证据：`MixerViewModel::updateMockAnalysisData()`、`TrackViewModel::meterLevel()`、QML Canvas 渲染、构建通过记录。
+
+## 阶段 4：素材库搜索与工程入口
+
+- 日期：2026-07-10
+- 使用的大模型：Codex
+- 采用模式：AI 主导代码生成，人工通过 Qt 构建和差异审查确认。
+- 提示词摘要：在成员 A 尚未提供 SQLite 素材库和 JSON 工程保存接口前，B 侧先完成素材搜索、导入入口、最近工程和工程恢复入口。
+- AI 输出内容：
+  - `MixerViewModel` 增加 `assetSearchText`、`filteredAssetNames`、`recentProjectNames`。
+  - `MixerViewModel` 增加 `importAssetByName()`、`restoreRecentProject()`、`saveMockProject()` stub。
+  - `Main.qml` 增加左侧素材库搜索列表、选中导入、最近工程恢复和保存快照入口。
+  - 轨道区保留原有 ViewModel 绑定，导入素材后仍进入当前 Mock 轨道列表。
+- 人工修改内容：确认素材和工程数据当前均为 Mock/stub，不直接实现 SQLite/JSON，也不越过 ViewModel 调用 Model。
+- 自测结果：
+  - 已运行 `git diff --check`，未发现空白或补丁格式问题。
+  - 已运行 `cmake --build build-qt`，构建通过。
+- 成员 A 交叉测试结果：待成员 A 检查后续素材库、工程保存/加载接口是否能替换当前 stub。
+- 对应提交：`60e47c7`
+- 可放入报告的证据：`MixerViewModel::refreshFilteredAssetNames()`、`MixerViewModel::saveMockProject()`、QML 素材/最近工程入口、构建通过记录。

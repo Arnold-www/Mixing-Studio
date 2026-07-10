@@ -8,6 +8,7 @@
 | 2026-07-10 | B | 阶段 1 / Mock 播放状态与 QML 骨架 | Codex | AI 主导代码生成，人工确认验证边界 | 先实现 B 侧播放进度状态和基础调音台界面，不等待 A 的真实音频实现 | 增加 Mock 播放进度属性、计时器和 QML 调音台布局 | 人工确认先记录 Qt6 环境缺口，是否安装取决于本机验收需求 | `git diff --check` 通过；CMake 因缺少 Qt6 未完成配置 | `f7245af` |
 | 2026-07-10 | B | 阶段 2 / 轨道 Solo、Mute 和参数回显 | Codex | AI 主导代码生成，人工构建验证 | 实现 B 侧轨道控制状态机，补充 Solo/Mute 有效监听状态和 UI 回显 | 增加 `audible`、`volumeText`、`panText`、`anySolo` 和 QML 状态显示 | 人工确认状态机留在 ViewModel，QML 只做绑定 | `git diff --check` 通过；`cmake --build build-qt` 通过 | `7a25348` |
 | 2026-07-10 | B | 阶段 3 / Mock 波形、频谱和电平显示 | Codex | AI 主导代码生成，人工构建验证 | 先完成 B 侧分析数据消费和可视化，不等待 A 的真实波形/VU/频谱实现 | 增加 Mock 分析数据、单轨电平属性、Canvas 波形和频谱渲染 | 人工确认 Mock 数据来源可后续替换，QML 接口保持稳定 | `git diff --check` 通过；`cmake --build build-qt` 通过 | `10f525b` |
+| 2026-07-10 | B | 阶段 4 / 素材库和工程入口 | Codex | AI 主导代码生成，人工构建验证 | 先完成 B 侧素材搜索、导入入口、最近工程和恢复入口，不等待 A 的持久化实现 | 增加素材/工程 QStringList 属性、搜索过滤、导入/恢复/保存 stub 和 QML 左侧面板 | 人工确认当前为 Mock/stub，后续由 A 的 SQLite/JSON 接口替换 | `git diff --check` 通过；`cmake --build build-qt` 通过 | `60e47c7` |
 
 ## 采用模式示例
 

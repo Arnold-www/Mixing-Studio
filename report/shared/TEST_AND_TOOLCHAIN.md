@@ -24,6 +24,7 @@ cmake --build build-qt
 | 2026-07-10 | 构建测试 | Qt/CMake 工具链 | `cmake -S . -B build-qt -DCMAKE_PREFIX_PATH=/opt/homebrew` | 通过 | 初始环境缺少 Qt6；安装 `qtdeclarative` 后通过 | `7739f16` |
 | 2026-07-10 | 构建测试 | B 侧阶段 2 ViewModel/QML | `cmake --build build-qt` | 通过 | 无 | `7a25348` |
 | 2026-07-10 | 构建测试 | B 侧阶段 3 可视化 | `cmake --build build-qt` | 通过 | 无 | `10f525b` |
+| 2026-07-10 | 构建测试 | B 侧阶段 4 素材/工程入口 | `cmake --build build-qt` | 通过 | 无 | `60e47c7` |
 
 ## 报告截图清单
 
