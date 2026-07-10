@@ -4,36 +4,36 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: window
-    width: 1220
-    height: 780
-    minimumWidth: 1040
-    minimumHeight: 680
+    width: 1180
+    height: 700
+    minimumWidth: 980
+    minimumHeight: 580
     visible: true
     title: "Mixing Studio"
     color: "#eef2f5"
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 14
-        spacing: 10
+        anchors.margins: 10
+        spacing: 8
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 88
+            Layout.preferredHeight: 82
             radius: 8
             color: "#ffffff"
             border.color: "#d6dde7"
 
             GridLayout {
                 anchors.fill: parent
-                anchors.margins: 12
+                anchors.margins: 10
                 columns: 8
                 columnSpacing: 10
                 rowSpacing: 8
 
                 Label {
                     text: "Mixing Studio"
-                    font.pixelSize: 24
+                    font.pixelSize: 22
                     font.bold: true
                     color: "#18202a"
                     Layout.preferredWidth: 190
@@ -100,8 +100,8 @@ ApplicationWindow {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 214
-            spacing: 10
+            Layout.preferredHeight: 168
+            spacing: 8
 
             Rectangle {
                 Layout.fillWidth: true
@@ -112,8 +112,8 @@ ApplicationWindow {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 6
+                    anchors.margins: 10
+                    spacing: 4
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -232,8 +232,8 @@ ApplicationWindow {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 6
+                    anchors.margins: 10
+                    spacing: 4
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -333,7 +333,8 @@ ApplicationWindow {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 10
+            Layout.minimumHeight: 300
+            spacing: 8
 
             Rectangle {
                 Layout.fillWidth: true
@@ -344,8 +345,8 @@ ApplicationWindow {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 10
+                    anchors.margins: 10
+                    spacing: 8
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -373,14 +374,14 @@ ApplicationWindow {
                         ListView {
                             id: trackStripList
                             anchors.fill: parent
-                            anchors.margins: 10
+                            anchors.margins: 8
                             orientation: ListView.Horizontal
-                            spacing: 10
+                            spacing: 8
                             clip: true
                             model: mixerViewModel.tracks
 
                             delegate: Rectangle {
-                                width: 178
+                                width: 166
                                 height: trackStripList.height
                                 radius: 8
                                 color: modelData.audible ? "#ffffff" : "#eef1f5"
@@ -389,8 +390,8 @@ ApplicationWindow {
 
                                 ColumnLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 10
-                                    spacing: 8
+                                    anchors.margins: 8
+                                    spacing: 6
 
                                     Label {
                                         text: modelData.name
@@ -514,7 +515,7 @@ ApplicationWindow {
             }
 
             Rectangle {
-                Layout.preferredWidth: 260
+                Layout.preferredWidth: 244
                 Layout.fillHeight: true
                 radius: 8
                 color: "#ffffff"
@@ -522,8 +523,8 @@ ApplicationWindow {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 10
+                    anchors.margins: 10
+                    spacing: 8
 
                     Label {
                         text: "Library"
@@ -542,7 +543,7 @@ ApplicationWindow {
                     ListView {
                         id: assetList
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 150
+                        Layout.preferredHeight: 120
                         clip: true
                         spacing: 4
                         model: mixerViewModel.filteredAssetNames
@@ -575,7 +576,7 @@ ApplicationWindow {
                     ListView {
                         id: recentProjectList
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 104
+                        Layout.preferredHeight: 86
                         clip: true
                         spacing: 4
                         model: mixerViewModel.recentProjectNames
