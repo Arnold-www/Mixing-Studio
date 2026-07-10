@@ -14,6 +14,8 @@ class TrackViewModel : public QObject
     Q_PROPERTY(bool audible READ audible NOTIFY audibleChanged)
     Q_PROPERTY(QString volumeText READ volumeText NOTIFY volumeChanged)
     Q_PROPERTY(QString panText READ panText NOTIFY panChanged)
+    Q_PROPERTY(float meterLevel READ meterLevel NOTIFY meterLevelChanged)
+    Q_PROPERTY(QString meterText READ meterText NOTIFY meterLevelChanged)
 
 public:
     explicit TrackViewModel(QString name, QObject *parent = nullptr);
@@ -26,8 +28,11 @@ public:
     bool audible() const;
     QString volumeText() const;
     QString panText() const;
+    float meterLevel() const;
+    QString meterText() const;
 
     void setBlockedBySolo(bool blockedBySolo);
+    void setMeterLevel(float meterLevel);
 
 public slots:
     void setVolume(float volume);
@@ -41,6 +46,7 @@ signals:
     void mutedChanged();
     void soloChanged();
     void audibleChanged();
+    void meterLevelChanged();
 
 private:
     QString m_name;
@@ -49,4 +55,5 @@ private:
     bool m_muted = false;
     bool m_solo = false;
     bool m_blockedBySolo = false;
+    float m_meterLevel = 0.0f;
 };

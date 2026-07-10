@@ -1,6 +1,7 @@
 #include <ViewModel/TrackViewModel.h>
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 TrackViewModel::TrackViewModel(QString name, QObject *parent)
@@ -54,6 +55,16 @@ QString TrackViewModel::panText() const
     return QStringLiteral("%1%2").arg(side).arg(static_cast<int>(std::abs(m_pan) * 100.0f));
 }
 
+float TrackViewModel::meterLevel() const
+{
+    return audible() ? m_meterLevel : 0.0f;
+}
+
+QString TrackViewModel::meterText() const
+{
+    return QStringLiteral("%1%").arg(static_cast<int>(meterLevel() * 100.0f));
+}
+
 void TrackViewModel::setBlockedBySolo(bool blockedBySolo)
 {
     if (m_blockedBySolo == blockedBySolo) {
@@ -64,7 +75,19 @@ void TrackViewModel::setBlockedBySolo(bool blockedBySolo)
     m_blockedBySolo = blockedBySolo;
     if (wasAudible != audible()) {
         emit audibleChanged();
+        emit meterLevelChanged();
     }
+}
+
+void TrackViewModel::setMeterLevel(float meterLevel)
+{
+    const float clamped = std::clamp(meterLevel, 0.0f, 1.0f);
+    if (qFuzzyCompare(m_meterLevel, clamped)) {
+        return;
+    }
+
+    m_meterLevel = clamped;
+    emit meterLevelChanged();
 }
 
 void TrackViewModel::setVolume(float volume)
@@ -100,6 +123,7 @@ void TrackViewModel::setMuted(bool muted)
     emit mutedChanged();
     if (wasAudible != audible()) {
         emit audibleChanged();
+        emit meterLevelChanged();
     }
 }
 

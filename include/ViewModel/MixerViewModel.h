@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QQmlListProperty>
 #include <QTimer>
+#include <QVariantList>
 #include <QVector>
 
 class AudioEngine;
@@ -20,6 +21,8 @@ class MixerViewModel : public QObject
     Q_PROPERTY(float playbackProgress READ playbackProgress NOTIFY playbackPositionChanged)
     Q_PROPERTY(QString playbackTimeText READ playbackTimeText NOTIFY playbackPositionChanged)
     Q_PROPERTY(bool anySolo READ anySolo NOTIFY soloStateChanged)
+    Q_PROPERTY(QVariantList waveformPoints READ waveformPoints NOTIFY waveformPointsChanged)
+    Q_PROPERTY(QVariantList spectrumLevels READ spectrumLevels NOTIFY spectrumLevelsChanged)
 
 public:
     explicit MixerViewModel(AudioEngine *audioEngine, QObject *parent = nullptr);
@@ -33,6 +36,8 @@ public:
     float playbackProgress() const;
     QString playbackTimeText() const;
     bool anySolo() const;
+    QVariantList waveformPoints() const;
+    QVariantList spectrumLevels() const;
 
 public slots:
     void importMockTrack();
@@ -50,6 +55,8 @@ signals:
     void playbackPositionChanged();
     void durationChanged();
     void soloStateChanged();
+    void waveformPointsChanged();
+    void spectrumLevelsChanged();
 
 private:
     void addTrack(const QString &name);
@@ -57,6 +64,7 @@ private:
     void setPositionSeconds(int positionSeconds);
     void updatePlaybackTimer();
     void refreshSoloState();
+    void updateMockAnalysisData();
     QString formatTime(int seconds) const;
 
     static qsizetype trackCount(QQmlListProperty<TrackViewModel> *property);
@@ -69,5 +77,8 @@ private:
     int m_positionSeconds = 0;
     int m_durationSeconds = 180;
     bool m_anySolo = false;
+    int m_analysisFrame = 0;
+    QVariantList m_waveformPoints;
+    QVariantList m_spectrumLevels;
     QTimer m_playbackTimer;
 };

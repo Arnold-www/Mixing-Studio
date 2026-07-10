@@ -4,6 +4,7 @@
 #include <ViewModel/TrackViewModel.h>
 
 #include <algorithm>
+#include <cmath>
 
 MixerViewModel::MixerViewModel(AudioEngine *audioEngine, QObject *parent)
     : QObject(parent)
@@ -21,7 +22,10 @@ MixerViewModel::MixerViewModel(AudioEngine *audioEngine, QObject *parent)
         }
 
         setPositionSeconds(m_positionSeconds + 1);
+        updateMockAnalysisData();
     });
+
+    updateMockAnalysisData();
 }
 
 QQmlListProperty<TrackViewModel> MixerViewModel::tracks()
@@ -73,11 +77,22 @@ bool MixerViewModel::anySolo() const
     return m_anySolo;
 }
 
+QVariantList MixerViewModel::waveformPoints() const
+{
+    return m_waveformPoints;
+}
+
+QVariantList MixerViewModel::spectrumLevels() const
+{
+    return m_spectrumLevels;
+}
+
 void MixerViewModel::importMockTrack()
 {
     const QString name = QStringLiteral("Track %1").arg(m_tracks.size() + 1);
     m_audioEngine->importTrack(name);
     addTrack(name);
+    updateMockAnalysisData();
 }
 
 void MixerViewModel::play()
@@ -169,6 +184,40 @@ void MixerViewModel::refreshSoloState()
         emit soloStateChanged();
         setStatusMessage(m_anySolo ? QStringLiteral("Solo monitoring enabled.")
                                    : QStringLiteral("Solo monitoring cleared."));
+    }
+}
+
+void MixerViewModel::updateMockAnalysisData()
+{
+    ++m_analysisFrame;
+
+    QVariantList waveform;
+    waveform.reserve(64);
+    for (int i = 0; i < 64; ++i) {
+        const double phase = (m_analysisFrame * 0.18) + (i * 0.34);
+        const double envelope = 0.35 + (0.45 * std::sin((i + m_analysisFrame) * 0.07));
+        const double value = std::sin(phase) * envelope;
+        waveform.append(std::clamp(value, -1.0, 1.0));
+    }
+
+    QVariantList spectrum;
+    spectrum.reserve(18);
+    for (int i = 0; i < 18; ++i) {
+        const double phase = (m_analysisFrame * 0.11) + (i * 0.42);
+        const double rolloff = 1.0 - (static_cast<double>(i) / 24.0);
+        const double value = (0.22 + (0.58 * std::abs(std::sin(phase)))) * rolloff;
+        spectrum.append(std::clamp(value, 0.0, 1.0));
+    }
+
+    m_waveformPoints = waveform;
+    m_spectrumLevels = spectrum;
+    emit waveformPointsChanged();
+    emit spectrumLevelsChanged();
+
+    for (int i = 0; i < m_tracks.size(); ++i) {
+        const double phase = (m_analysisFrame * 0.15) + (i * 0.8);
+        const float level = static_cast<float>((0.28 + (0.56 * std::abs(std::sin(phase)))) * m_tracks.at(i)->volume());
+        m_tracks.at(i)->setMeterLevel(level);
     }
 }
 

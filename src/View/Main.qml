@@ -103,6 +103,114 @@ ApplicationWindow {
 
         Rectangle {
             Layout.fillWidth: true
+            height: 150
+            radius: 8
+            color: "#ffffff"
+            border.color: "#d8dee8"
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 16
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: 8
+
+                    Label {
+                        text: "Waveform"
+                        color: "#374151"
+                        font.bold: true
+                    }
+
+                    Canvas {
+                        id: waveformCanvas
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.reset()
+                            ctx.clearRect(0, 0, width, height)
+                            ctx.strokeStyle = "#2f7d6d"
+                            ctx.lineWidth = 2
+                            ctx.beginPath()
+
+                            var points = mixerViewModel.waveformPoints
+                            for (var i = 0; i < points.length; ++i) {
+                                var x = points.length <= 1 ? 0 : (i / (points.length - 1)) * width
+                                var y = (0.5 - points[i] * 0.42) * height
+                                if (i === 0)
+                                    ctx.moveTo(x, y)
+                                else
+                                    ctx.lineTo(x, y)
+                            }
+
+                            ctx.stroke()
+                            ctx.strokeStyle = "#d8dee8"
+                            ctx.lineWidth = 1
+                            ctx.beginPath()
+                            ctx.moveTo(0, height / 2)
+                            ctx.lineTo(width, height / 2)
+                            ctx.stroke()
+                        }
+
+                        Connections {
+                            target: mixerViewModel
+                            function onWaveformPointsChanged() {
+                                waveformCanvas.requestPaint()
+                            }
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.preferredWidth: 320
+                    Layout.fillHeight: true
+                    spacing: 8
+
+                    Label {
+                        text: "Spectrum"
+                        color: "#374151"
+                        font.bold: true
+                    }
+
+                    Canvas {
+                        id: spectrumCanvas
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.reset()
+                            ctx.clearRect(0, 0, width, height)
+
+                            var levels = mixerViewModel.spectrumLevels
+                            var gap = 4
+                            var barWidth = levels.length === 0 ? width : (width - gap * (levels.length - 1)) / levels.length
+                            for (var i = 0; i < levels.length; ++i) {
+                                var barHeight = Math.max(2, levels[i] * height)
+                                var x = i * (barWidth + gap)
+                                var y = height - barHeight
+                                ctx.fillStyle = levels[i] > 0.72 ? "#b34d4d" : "#536f9d"
+                                ctx.fillRect(x, y, barWidth, barHeight)
+                            }
+                        }
+
+                        Connections {
+                            target: mixerViewModel
+                            function onSpectrumLevelsChanged() {
+                                spectrumCanvas.requestPaint()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
             Layout.fillHeight: true
             radius: 8
             color: "#ffffff"
@@ -118,79 +226,110 @@ ApplicationWindow {
 
                 delegate: Rectangle {
                     width: ListView.view.width
-                    height: 104
+                    height: 132
                     radius: 8
                     color: modelData.audible ? "#f6f8fb" : "#eef1f5"
                     border.color: modelData.solo ? "#2f7d6d" : "#d7dde7"
                     opacity: modelData.audible ? 1.0 : 0.72
 
-                    RowLayout {
+                    ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 12
-                        spacing: 12
+                        spacing: 8
 
-                        Label {
-                            text: modelData.name
-                            font.bold: true
-                            color: "#18202a"
-                            elide: Text.ElideRight
-                            Layout.preferredWidth: 130
-                        }
-
-                        Label {
-                            text: "Volume"
-                            color: "#4b5563"
-                        }
-
-                        Slider {
-                            from: 0.0
-                            to: 1.0
-                            value: modelData.volume
-                            onMoved: modelData.volume = value
+                        RowLayout {
                             Layout.fillWidth: true
+                            spacing: 12
+
+                            Label {
+                                text: modelData.name
+                                font.bold: true
+                                color: "#18202a"
+                                elide: Text.ElideRight
+                                Layout.preferredWidth: 130
+                            }
+
+                            Label {
+                                text: "Volume"
+                                color: "#4b5563"
+                            }
+
+                            Slider {
+                                from: 0.0
+                                to: 1.0
+                                value: modelData.volume
+                                onMoved: modelData.volume = value
+                                Layout.fillWidth: true
+                            }
+
+                            Label {
+                                text: modelData.volumeText
+                                color: "#374151"
+                                font.family: "Menlo"
+                                horizontalAlignment: Text.AlignRight
+                                Layout.preferredWidth: 46
+                            }
+
+                            Label {
+                                text: "Pan"
+                                color: "#4b5563"
+                            }
+
+                            Slider {
+                                from: -1.0
+                                to: 1.0
+                                value: modelData.pan
+                                onMoved: modelData.pan = value
+                                Layout.preferredWidth: 160
+                            }
+
+                            Label {
+                                text: modelData.panText
+                                color: "#374151"
+                                font.family: "Menlo"
+                                horizontalAlignment: Text.AlignRight
+                                Layout.preferredWidth: 46
+                            }
+
+                            CheckBox {
+                                text: "Mute"
+                                checked: modelData.muted
+                                onToggled: modelData.muted = checked
+                                Layout.preferredWidth: 86
+                            }
+
+                            CheckBox {
+                                text: "Solo"
+                                checked: modelData.solo
+                                onToggled: modelData.solo = checked
+                                Layout.preferredWidth: 78
+                            }
                         }
 
-                        Label {
-                            text: modelData.volumeText
-                            color: "#374151"
-                            font.family: "Menlo"
-                            horizontalAlignment: Text.AlignRight
-                            Layout.preferredWidth: 46
-                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 10
 
-                        Label {
-                            text: "Pan"
-                            color: "#4b5563"
-                        }
+                            Label {
+                                text: "Level"
+                                color: "#4b5563"
+                                Layout.preferredWidth: 130
+                            }
 
-                        Slider {
-                            from: -1.0
-                            to: 1.0
-                            value: modelData.pan
-                            onMoved: modelData.pan = value
-                            Layout.preferredWidth: 160
-                        }
+                            ProgressBar {
+                                from: 0.0
+                                to: 1.0
+                                value: modelData.meterLevel
+                                Layout.fillWidth: true
+                            }
 
-                        Label {
-                            text: modelData.panText
-                            color: "#374151"
-                            font.family: "Menlo"
-                            horizontalAlignment: Text.AlignRight
-                            Layout.preferredWidth: 46
-                        }
-
-                        CheckBox {
-                            text: "Mute"
-                            checked: modelData.muted
-                            onToggled: modelData.muted = checked
-                            Layout.preferredWidth: 86
-                        }
-
-                        CheckBox {
-                            text: "Solo"
-                            checked: modelData.solo
-                            onToggled: modelData.solo = checked
-                            Layout.preferredWidth: 78
+                            Label {
+                                text: modelData.meterText
+                                color: "#374151"
+                                font.family: "Menlo"
+                                horizontalAlignment: Text.AlignRight
+                                Layout.preferredWidth: 46
+                            }
                         }
                     }
                 }
