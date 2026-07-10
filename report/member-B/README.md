@@ -128,3 +128,23 @@
 - 成员 A 交叉测试结果：待成员 A 检查后续素材库、工程保存/加载接口是否能替换当前 stub。
 - 对应提交：`60e47c7`
 - 可放入报告的证据：`MixerViewModel::refreshFilteredAssetNames()`、`MixerViewModel::saveMockProject()`、QML 素材/最近工程入口、构建通过记录。
+
+## 阶段 4.1：自我 Review 后的界面重构
+
+- 日期：2026-07-10
+- 使用的大模型：Codex
+- 采用模式：AI 自我 Review，人工指出界面层级问题后确认方案，再由 AI 修改实现。
+- 提示词摘要：当前窗口排布不够像调音台，素材选择占据过多空间，Spectrum/Waveform 缺少坐标说明且尺寸不平衡，需要先反思再按确认方案改动。
+- AI 输出内容：
+  - 将窗口重构为顶部 Transport、中部 Analysis、底部 Mixer 主区和右侧 Library 侧栏。
+  - 将素材库和最近工程入口压缩为右侧窄栏，避免占据主混音空间。
+  - 将轨道列表改成横向 channel strip，使音量推子、电平、Pan、Mute、Solo 成为主体。
+  - Waveform 和 Spectrum 改为等宽分析面板，并增加网格、时间/频率横轴、幅度/dB 纵轴和播放位置线。
+- 人工修改内容：确认本次只重构 B 侧 QML 视觉和交互排布，不引入新的 A 侧底层依赖。
+- 自测结果：
+  - 已运行 `git diff --check`，未发现空白或补丁格式问题。
+  - 已运行 `cmake --build build-qt`，构建通过。
+  - 已启动 `build-qt/bin/MixingStudio`，无 QML 运行时错误输出。
+- 成员 A 交叉测试结果：待成员 A 后续检查 QML 是否仍只通过 ViewModel 消费数据。
+- 对应提交：`f055073`
+- 可放入报告的证据：新主界面截图、Spectrum/Waveform 坐标轴截图、横向 channel strip 截图、构建通过记录。
