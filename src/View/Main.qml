@@ -216,129 +216,234 @@ ApplicationWindow {
             color: "#ffffff"
             border.color: "#d8dee8"
 
-            ListView {
-                id: trackList
+            RowLayout {
                 anchors.fill: parent
                 anchors.margins: 12
-                spacing: 8
-                model: mixerViewModel.tracks
-                clip: true
+                spacing: 14
 
-                delegate: Rectangle {
-                    width: ListView.view.width
-                    height: 132
-                    radius: 8
-                    color: modelData.audible ? "#f6f8fb" : "#eef1f5"
-                    border.color: modelData.solo ? "#2f7d6d" : "#d7dde7"
-                    opacity: modelData.audible ? 1.0 : 0.72
+                ColumnLayout {
+                    Layout.preferredWidth: 300
+                    Layout.fillHeight: true
+                    spacing: 10
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 8
+                    Label {
+                        text: "Assets"
+                        color: "#374151"
+                        font.bold: true
+                    }
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 12
+                    TextField {
+                        text: mixerViewModel.assetSearchText
+                        placeholderText: "Search assets"
+                        selectByMouse: true
+                        onTextEdited: mixerViewModel.assetSearchText = text
+                        Layout.fillWidth: true
+                    }
 
-                            Label {
-                                text: modelData.name
-                                font.bold: true
-                                color: "#18202a"
-                                elide: Text.ElideRight
-                                Layout.preferredWidth: 130
-                            }
-
-                            Label {
-                                text: "Volume"
-                                color: "#4b5563"
-                            }
-
-                            Slider {
-                                from: 0.0
-                                to: 1.0
-                                value: modelData.volume
-                                onMoved: modelData.volume = value
-                                Layout.fillWidth: true
-                            }
-
-                            Label {
-                                text: modelData.volumeText
-                                color: "#374151"
-                                font.family: "Menlo"
-                                horizontalAlignment: Text.AlignRight
-                                Layout.preferredWidth: 46
-                            }
-
-                            Label {
-                                text: "Pan"
-                                color: "#4b5563"
-                            }
-
-                            Slider {
-                                from: -1.0
-                                to: 1.0
-                                value: modelData.pan
-                                onMoved: modelData.pan = value
-                                Layout.preferredWidth: 160
-                            }
-
-                            Label {
-                                text: modelData.panText
-                                color: "#374151"
-                                font.family: "Menlo"
-                                horizontalAlignment: Text.AlignRight
-                                Layout.preferredWidth: 46
-                            }
-
-                            CheckBox {
-                                text: "Mute"
-                                checked: modelData.muted
-                                onToggled: modelData.muted = checked
-                                Layout.preferredWidth: 86
-                            }
-
-                            CheckBox {
-                                text: "Solo"
-                                checked: modelData.solo
-                                onToggled: modelData.solo = checked
-                                Layout.preferredWidth: 78
-                            }
+                    ListView {
+                        id: assetList
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        spacing: 4
+                        model: mixerViewModel.filteredAssetNames
+                        onCountChanged: {
+                            if (currentIndex >= count)
+                                currentIndex = -1
                         }
 
-                        RowLayout {
+                        delegate: ItemDelegate {
+                            width: ListView.view.width
+                            text: modelData
+                            highlighted: ListView.isCurrentItem
+                            onClicked: assetList.currentIndex = index
+                        }
+                    }
+
+                    Button {
+                        text: "Import Selected"
+                        enabled: assetList.currentIndex >= 0
+                        onClicked: mixerViewModel.importAssetByName(mixerViewModel.filteredAssetNames[assetList.currentIndex])
+                        Layout.fillWidth: true
+                    }
+
+                    Label {
+                        text: "Recent Projects"
+                        color: "#374151"
+                        font.bold: true
+                    }
+
+                    ListView {
+                        id: recentProjectList
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 104
+                        clip: true
+                        spacing: 4
+                        model: mixerViewModel.recentProjectNames
+                        onCountChanged: {
+                            if (currentIndex >= count)
+                                currentIndex = -1
+                        }
+
+                        delegate: ItemDelegate {
+                            width: ListView.view.width
+                            text: modelData
+                            highlighted: ListView.isCurrentItem
+                            onClicked: recentProjectList.currentIndex = index
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Button {
+                            text: "Restore"
+                            enabled: recentProjectList.currentIndex >= 0
+                            onClicked: mixerViewModel.restoreRecentProject(mixerViewModel.recentProjectNames[recentProjectList.currentIndex])
                             Layout.fillWidth: true
-                            spacing: 10
+                        }
 
-                            Label {
-                                text: "Level"
-                                color: "#4b5563"
-                                Layout.preferredWidth: 130
-                            }
-
-                            ProgressBar {
-                                from: 0.0
-                                to: 1.0
-                                value: modelData.meterLevel
-                                Layout.fillWidth: true
-                            }
-
-                            Label {
-                                text: modelData.meterText
-                                color: "#374151"
-                                font.family: "Menlo"
-                                horizontalAlignment: Text.AlignRight
-                                Layout.preferredWidth: 46
-                            }
+                        Button {
+                            text: "Save Snapshot"
+                            onClicked: mixerViewModel.saveMockProject()
+                            Layout.fillWidth: true
                         }
                     }
                 }
 
-                Label {
-                    anchors.centerIn: parent
-                    visible: trackList.count === 0
-                    text: "Import a mock track to start building the mix."
-                    color: "#6b7280"
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 8
+                    color: "#fafbfc"
+                    border.color: "#e2e7ef"
+
+                    ListView {
+                        id: trackList
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
+                        model: mixerViewModel.tracks
+                        clip: true
+
+                        delegate: Rectangle {
+                            width: ListView.view.width
+                            height: 132
+                            radius: 8
+                            color: modelData.audible ? "#f6f8fb" : "#eef1f5"
+                            border.color: modelData.solo ? "#2f7d6d" : "#d7dde7"
+                            opacity: modelData.audible ? 1.0 : 0.72
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                spacing: 8
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 12
+
+                                    Label {
+                                        text: modelData.name
+                                        font.bold: true
+                                        color: "#18202a"
+                                        elide: Text.ElideRight
+                                        Layout.preferredWidth: 130
+                                    }
+
+                                    Label {
+                                        text: "Volume"
+                                        color: "#4b5563"
+                                    }
+
+                                    Slider {
+                                        from: 0.0
+                                        to: 1.0
+                                        value: modelData.volume
+                                        onMoved: modelData.volume = value
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Label {
+                                        text: modelData.volumeText
+                                        color: "#374151"
+                                        font.family: "Menlo"
+                                        horizontalAlignment: Text.AlignRight
+                                        Layout.preferredWidth: 46
+                                    }
+
+                                    Label {
+                                        text: "Pan"
+                                        color: "#4b5563"
+                                    }
+
+                                    Slider {
+                                        from: -1.0
+                                        to: 1.0
+                                        value: modelData.pan
+                                        onMoved: modelData.pan = value
+                                        Layout.preferredWidth: 160
+                                    }
+
+                                    Label {
+                                        text: modelData.panText
+                                        color: "#374151"
+                                        font.family: "Menlo"
+                                        horizontalAlignment: Text.AlignRight
+                                        Layout.preferredWidth: 46
+                                    }
+
+                                    CheckBox {
+                                        text: "Mute"
+                                        checked: modelData.muted
+                                        onToggled: modelData.muted = checked
+                                        Layout.preferredWidth: 86
+                                    }
+
+                                    CheckBox {
+                                        text: "Solo"
+                                        checked: modelData.solo
+                                        onToggled: modelData.solo = checked
+                                        Layout.preferredWidth: 78
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+
+                                    Label {
+                                        text: "Level"
+                                        color: "#4b5563"
+                                        Layout.preferredWidth: 130
+                                    }
+
+                                    ProgressBar {
+                                        from: 0.0
+                                        to: 1.0
+                                        value: modelData.meterLevel
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Label {
+                                        text: modelData.meterText
+                                        color: "#374151"
+                                        font.family: "Menlo"
+                                        horizontalAlignment: Text.AlignRight
+                                        Layout.preferredWidth: 46
+                                    }
+                                }
+                            }
+                        }
+
+                        Label {
+                            anchors.centerIn: parent
+                            visible: trackList.count === 0
+                            text: "Import a mock track to start building the mix."
+                            color: "#6b7280"
+                        }
+                    }
                 }
             }
         }

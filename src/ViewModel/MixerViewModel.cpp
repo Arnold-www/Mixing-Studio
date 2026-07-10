@@ -5,10 +5,28 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 MixerViewModel::MixerViewModel(AudioEngine *audioEngine, QObject *parent)
     : QObject(parent)
     , m_audioEngine(audioEngine)
+    , m_assetNames({
+          QStringLiteral("Lead Vocal.wav"),
+          QStringLiteral("Backing Vocals.wav"),
+          QStringLiteral("Acoustic Guitar.wav"),
+          QStringLiteral("Electric Guitar DI.wav"),
+          QStringLiteral("Bass DI.wav"),
+          QStringLiteral("Kick Close.wav"),
+          QStringLiteral("Snare Top.wav"),
+          QStringLiteral("Drum Overheads.wav"),
+          QStringLiteral("Room Ambience.wav"),
+          QStringLiteral("Reference Mix.wav"),
+      })
+    , m_recentProjectNames({
+          QStringLiteral("Studio Demo Session"),
+          QStringLiteral("Podcast Voice Cleanup"),
+          QStringLiteral("Band Rehearsal Mix"),
+      })
 {
     connect(m_audioEngine, &AudioEngine::playbackStateChanged, this, &MixerViewModel::playingChanged);
     connect(m_audioEngine, &AudioEngine::playbackStateChanged, this, &MixerViewModel::updatePlaybackTimer);
@@ -26,6 +44,7 @@ MixerViewModel::MixerViewModel(AudioEngine *audioEngine, QObject *parent)
     });
 
     updateMockAnalysisData();
+    refreshFilteredAssetNames();
 }
 
 QQmlListProperty<TrackViewModel> MixerViewModel::tracks()
@@ -87,12 +106,67 @@ QVariantList MixerViewModel::spectrumLevels() const
     return m_spectrumLevels;
 }
 
+QString MixerViewModel::assetSearchText() const
+{
+    return m_assetSearchText;
+}
+
+QStringList MixerViewModel::filteredAssetNames() const
+{
+    return m_filteredAssetNames;
+}
+
+QStringList MixerViewModel::recentProjectNames() const
+{
+    return m_recentProjectNames;
+}
+
 void MixerViewModel::importMockTrack()
 {
     const QString name = QStringLiteral("Track %1").arg(m_tracks.size() + 1);
     m_audioEngine->importTrack(name);
     addTrack(name);
     updateMockAnalysisData();
+}
+
+void MixerViewModel::importAssetByName(const QString &name)
+{
+    if (name.trimmed().isEmpty()) {
+        setStatusMessage(QStringLiteral("Select an asset before importing."));
+        return;
+    }
+
+    m_audioEngine->importTrack(name);
+    addTrack(name);
+    updateMockAnalysisData();
+}
+
+void MixerViewModel::restoreRecentProject(const QString &name)
+{
+    if (name.trimmed().isEmpty()) {
+        setStatusMessage(QStringLiteral("Select a recent project before restore."));
+        return;
+    }
+
+    setStatusMessage(QStringLiteral("Restore project queued: %1").arg(name));
+}
+
+void MixerViewModel::saveMockProject()
+{
+    if (m_tracks.isEmpty()) {
+        setStatusMessage(QStringLiteral("Add at least one track before saving a project snapshot."));
+        return;
+    }
+
+    const QString name = QStringLiteral("Mock Project %1 tracks").arg(m_tracks.size());
+    m_recentProjectNames.removeAll(name);
+    m_recentProjectNames.prepend(name);
+    while (m_recentProjectNames.size() > 5) {
+        m_recentProjectNames.removeLast();
+    }
+
+    emit recentProjectNamesChanged();
+    setStatusMessage(QStringLiteral("Project snapshot queued: %1").arg(name));
 }
 
 void MixerViewModel::play()
@@ -127,6 +201,17 @@ void MixerViewModel::seekToProgress(float progress)
 {
     const float clamped = std::clamp(progress, 0.0f, 1.0f);
     setPositionSeconds(static_cast<int>(clamped * m_durationSeconds));
+}
+
+void MixerViewModel::setAssetSearchText(const QString &text)
+{
+    if (m_assetSearchText == text) {
+        return;
+    }
+
+    m_assetSearchText = text;
+    emit assetSearchTextChanged();
+    refreshFilteredAssetNames();
 }
 
 void MixerViewModel::addTrack(const QString &name)
@@ -219,6 +304,23 @@ void MixerViewModel::updateMockAnalysisData()
         const float level = static_cast<float>((0.28 + (0.56 * std::abs(std::sin(phase)))) * m_tracks.at(i)->volume());
         m_tracks.at(i)->setMeterLevel(level);
     }
+}
+
+void MixerViewModel::refreshFilteredAssetNames()
+{
+    QStringList filtered;
+    for (const QString &name : std::as_const(m_assetNames)) {
+        if (m_assetSearchText.isEmpty() || name.contains(m_assetSearchText, Qt::CaseInsensitive)) {
+            filtered.append(name);
+        }
+    }
+
+    if (m_filteredAssetNames == filtered) {
+        return;
+    }
+
+    m_filteredAssetNames = filtered;
+    emit filteredAssetNamesChanged();
 }
 
 QString MixerViewModel::formatTime(int seconds) const
