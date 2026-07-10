@@ -90,3 +90,22 @@
 - 成员 A 交叉测试结果：待成员 A 检查 ViewModel/QML 是否越过 Model，Solo/Mute 规则是否符合接口预期。
 - 对应提交：`7a25348`
 - 可放入报告的证据：`TrackViewModel::audible()`、`MixerViewModel::refreshSoloState()`、QML 轨道状态回显、构建通过记录。
+
+## 阶段 3：Mock 波形、频谱和电平可视化
+
+- 日期：2026-07-10
+- 使用的大模型：Codex
+- 采用模式：AI 主导代码生成，人工通过 Qt 构建和差异审查确认。
+- 提示词摘要：在成员 A 尚未提供真实分析数据前，由 B 侧先完成波形、频谱、轨道电平的数据消费路径和 QML 可视化。
+- AI 输出内容：
+  - `MixerViewModel` 增加 `waveformPoints` 和 `spectrumLevels`，使用确定性 Mock 数据模拟分析结果。
+  - `TrackViewModel` 增加 `meterLevel` 和 `meterText`，用于单轨电平显示。
+  - 播放计时器推进时刷新 Mock 波形、频谱和每轨电平。
+  - `Main.qml` 增加波形 Canvas、频谱 Canvas 和单轨电平条。
+- 人工修改内容：确认当前数据为 Mock，后续由成员 A 的真实波形/VU/频谱接口替换数据来源，QML 绑定接口保持稳定。
+- 自测结果：
+  - 已运行 `git diff --check`，未发现空白或补丁格式问题。
+  - 已运行 `cmake --build build-qt`，构建通过。
+- 成员 A 交叉测试结果：待成员 A 检查可视化数据是否只来自 ViewModel，后续对接真实分析数据。
+- 对应提交：`10f525b`
+- 可放入报告的证据：`MixerViewModel::updateMockAnalysisData()`、`TrackViewModel::meterLevel()`、QML Canvas 渲染、构建通过记录。
