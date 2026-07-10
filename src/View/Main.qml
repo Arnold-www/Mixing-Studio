@@ -131,7 +131,6 @@ ApplicationWindow {
 
                         onPaint: {
                             var ctx = getContext("2d")
-                            ctx.reset()
                             ctx.clearRect(0, 0, width, height)
                             ctx.strokeStyle = "#2f7d6d"
                             ctx.lineWidth = 2
@@ -183,7 +182,6 @@ ApplicationWindow {
 
                         onPaint: {
                             var ctx = getContext("2d")
-                            ctx.reset()
                             ctx.clearRect(0, 0, width, height)
 
                             var levels = mixerViewModel.spectrumLevels
@@ -329,7 +327,7 @@ ApplicationWindow {
 
                         delegate: Rectangle {
                             width: ListView.view.width
-                            height: 132
+                            height: 156
                             radius: 8
                             color: modelData.audible ? "#f6f8fb" : "#eef1f5"
                             border.color: modelData.solo ? "#2f7d6d" : "#d7dde7"
@@ -349,12 +347,39 @@ ApplicationWindow {
                                         font.bold: true
                                         color: "#18202a"
                                         elide: Text.ElideRight
-                                        Layout.preferredWidth: 130
+                                        Layout.fillWidth: true
                                     }
+
+                                    Label {
+                                        text: modelData.audible ? "Audible" : "Silent"
+                                        color: "#374151"
+                                        horizontalAlignment: Text.AlignRight
+                                        Layout.preferredWidth: 72
+                                    }
+
+                                    CheckBox {
+                                        text: "Mute"
+                                        checked: modelData.muted
+                                        onToggled: modelData.muted = checked
+                                        Layout.preferredWidth: 86
+                                    }
+
+                                    CheckBox {
+                                        text: "Solo"
+                                        checked: modelData.solo
+                                        onToggled: modelData.solo = checked
+                                        Layout.preferredWidth: 78
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 12
 
                                     Label {
                                         text: "Volume"
                                         color: "#4b5563"
+                                        Layout.preferredWidth: 62
                                     }
 
                                     Slider {
@@ -376,6 +401,7 @@ ApplicationWindow {
                                     Label {
                                         text: "Pan"
                                         color: "#4b5563"
+                                        Layout.preferredWidth: 34
                                     }
 
                                     Slider {
@@ -383,7 +409,7 @@ ApplicationWindow {
                                         to: 1.0
                                         value: modelData.pan
                                         onMoved: modelData.pan = value
-                                        Layout.preferredWidth: 160
+                                        Layout.preferredWidth: 150
                                     }
 
                                     Label {
@@ -392,20 +418,6 @@ ApplicationWindow {
                                         font.family: "Menlo"
                                         horizontalAlignment: Text.AlignRight
                                         Layout.preferredWidth: 46
-                                    }
-
-                                    CheckBox {
-                                        text: "Mute"
-                                        checked: modelData.muted
-                                        onToggled: modelData.muted = checked
-                                        Layout.preferredWidth: 86
-                                    }
-
-                                    CheckBox {
-                                        text: "Solo"
-                                        checked: modelData.solo
-                                        onToggled: modelData.solo = checked
-                                        Layout.preferredWidth: 78
                                     }
                                 }
 
