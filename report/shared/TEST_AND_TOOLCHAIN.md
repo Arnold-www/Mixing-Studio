@@ -26,6 +26,10 @@ cmake --build build-qt
 | 2026-07-10 | 构建测试 | B 侧阶段 3 可视化 | `cmake --build build-qt` | 通过 | 无 | `10f525b` |
 | 2026-07-10 | 构建测试 | B 侧阶段 4 素材/工程入口 | `cmake --build build-qt` | 通过 | 无 | `60e47c7` |
 | 2026-07-10 | 构建与运行测试 | B 侧阶段 4.1 UI 重构 | `cmake --build build-qt`；启动 `build-qt/bin/MixingStudio` | 通过 | 无 | `f055073` |
+| 2026-07-11 | 静态互测脚本 | `chai/feat` MVVM 分层、头文件目录、B 侧分支范围、报告证据文件 | `powershell -ExecutionPolicy Bypass -File scripts\validate_feature.ps1` | 通过，13 项检查全部通过 | 无 | `4fcbeaa` |
+| 2026-07-11 | Windows CMake 配置检查 | 本机 Qt/CMake 工具链 | `cmake -S . -B build` | 未通过 | Windows 当前未配置 Qt6，CMake 找不到 `Qt6Config.cmake`；需安装 Qt6 或设置 `CMAKE_PREFIX_PATH`/`Qt6_DIR` | 环境问题，非 feature 代码修复 |
+| 2026-07-11 | Windows Qt 环境配置 | Qt 6.5.3 MSVC2019 64-bit | `python -m aqt install-qt windows desktop 6.5.3 win64_msvc2019_64 -O "D:\Qt"` | 通过 | 首次尝试单独安装 `qtdeclarative` 模块失败；基础 Qt 安装包已包含 QML/Quick/QuickControls2 | 环境配置 |
+| 2026-07-11 | Windows 构建测试 | `chai/feat` 当前工程 | `cmake -S . -B build -DCMAKE_PREFIX_PATH="D:\Qt\6.5.3\msvc2019_64"`；`cmake --build build --config Debug` | 通过，生成 `build/bin/Debug/MixingStudio.exe` | 无 | 待提交 |
 
 ## 报告截图清单
 

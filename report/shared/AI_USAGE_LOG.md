@@ -10,6 +10,8 @@
 | 2026-07-10 | B | 阶段 3 / Mock 波形、频谱和电平显示 | Codex | AI 主导代码生成，人工构建验证 | 先完成 B 侧分析数据消费和可视化，不等待 A 的真实波形/VU/频谱实现 | 增加 Mock 分析数据、单轨电平属性、Canvas 波形和频谱渲染 | 人工确认 Mock 数据来源可后续替换，QML 接口保持稳定 | `git diff --check` 通过；`cmake --build build-qt` 通过 | `10f525b` |
 | 2026-07-10 | B | 阶段 4 / 素材库和工程入口 | Codex | AI 主导代码生成，人工构建验证 | 先完成 B 侧素材搜索、导入入口、最近工程和恢复入口，不等待 A 的持久化实现 | 增加素材/工程 QStringList 属性、搜索过滤、导入/恢复/保存 stub 和 QML 左侧面板 | 人工确认当前为 Mock/stub，后续由 A 的 SQLite/JSON 接口替换 | `git diff --check` 通过；`cmake --build build-qt` 通过 | `60e47c7` |
 | 2026-07-10 | B | 阶段 4.1 / UI 自我 Review 修正 | Codex | AI 自我 Review，人工确认方案后修改 | 用户指出界面排布、Spectrum 坐标和主次层级问题，要求先反思后按方案改动 | 重构为 Transport、Analysis、Mixer、Library 四区；补充波形/频谱轴线和横向 channel strip | 人工确认修改范围限定在 B 侧 QML，不新增 A 侧底层依赖 | `git diff --check` 通过；`cmake --build build-qt` 通过；GUI 启动无错误输出 | `f055073` |
+| 2026-07-11 | A | `chai/feat` 交叉测试 / 验证脚本 | Codex | AI 生成测试脚本，人工运行并记录结果 | 根据 docs 中 MVVM 分层、B 侧分支范围和互测要求，为当前 feature 编写可重复运行的测试脚本 | 新增 `scripts/validate_feature.ps1`，检查分支、头文件目录、QML 越界、Model/DSP 依赖、报告证据和 CMake include 配置 | 人工运行脚本并补充互测记录；另运行 CMake 配置确认 Windows Qt6 环境缺口 | 静态验证 13 项通过；CMake 因本机未配置 Qt6 未通过，记录为环境问题 | `4fcbeaa` |
+| 2026-07-11 | A | Windows Qt 环境 / 构建脚本 | Codex | AI 辅助环境配置，人工运行验证 | 为 Windows 本机安装 Qt 并保留可复用构建脚本，确保 `chai/feat` 可在 Windows 构建 | 使用 `aqtinstall` 安装 Qt 6.5.3；新增 `scripts/configure_qt_windows.ps1` 一键配置和构建 | 人工运行安装、配置和构建命令；确认生成 `build/bin/Debug/MixingStudio.exe` | `configure_qt_windows.ps1` 运行通过；Windows Debug 构建通过 | 待本次提交 |
 
 ## 采用模式示例
 
