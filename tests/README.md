@@ -1,10 +1,23 @@
 # Tests
 
-该目录用于后续存放单元测试和验证脚本。
+阶段一（Sprint 1）仅包含 DSP 单元测试骨架。
 
-优先测试对象：
+## 当前测试
 
-- `src/DSP/` 中的纯算法函数。
-- `src/ViewModel/` 中的 Solo/Mute 状态机。
-- 工程保存/加载和 WAV 导出。
-- 交叉测试中发现的问题回归用例。
+- `test_dsp_processor.cpp`：验证 `clampSample`、`applyGain`、`panLeftGain`、`panRightGain`
+
+## 一键运行
+
+```powershell
+.\scripts\run_tests.ps1 -WithApp
+```
+
+## 手动运行
+
+```powershell
+cmake -S . -B build -DCMAKE_PREFIX_PATH="D:\Qt\6.5.3\msvc2019_64"
+cmake --build build --config Debug
+ctest --test-dir build -C Debug --output-on-failure
+```
+
+当前应通过：`dsp_processor`
