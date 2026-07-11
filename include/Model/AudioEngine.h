@@ -13,6 +13,7 @@ public:
 
     QStringList tracks() const;
     bool isPlaying() const;
+    float masterVolume() const;
 
 public slots:
     void importTrack(const QString &path);

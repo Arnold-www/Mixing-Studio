@@ -41,3 +41,17 @@ target_include_directories(MixingStudio
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+enable_testing()
+
+add_executable(test_dsp_processor
+    tests/test_dsp_processor.cpp
+    src/DSP/DspProcessor.cpp
+)
+
+target_include_directories(test_dsp_processor
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_test(NAME dsp_processor COMMAND test_dsp_processor)
