@@ -22,6 +22,10 @@ qt_add_executable(MixingStudio
     src/ViewModel/MixerViewModel.cpp
 )
 
+set_target_properties(MixingStudio PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
 qt_add_qml_module(MixingStudio
     URI MixingStudio
     VERSION 1.0
