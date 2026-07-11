@@ -1,6 +1,7 @@
 #include <ViewModel/TrackViewModel.h>
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 TrackViewModel::TrackViewModel(QString name, QObject *parent)
@@ -34,6 +35,61 @@ bool TrackViewModel::solo() const
     return m_solo;
 }
 
+bool TrackViewModel::audible() const
+{
+    return !m_muted && !m_blockedBySolo;
+}
+
+QString TrackViewModel::volumeText() const
+{
+    return QStringLiteral("%1%").arg(static_cast<int>(m_volume * 100.0f));
+}
+
+QString TrackViewModel::panText() const
+{
+    if (qFuzzyIsNull(m_pan)) {
+        return QStringLiteral("C");
+    }
+
+    const QString side = m_pan < 0.0f ? QStringLiteral("L") : QStringLiteral("R");
+    return QStringLiteral("%1%2").arg(side).arg(static_cast<int>(std::abs(m_pan) * 100.0f));
+}
+
+float TrackViewModel::meterLevel() const
+{
+    return audible() ? m_meterLevel : 0.0f;
+}
+
+QString TrackViewModel::meterText() const
+{
+    return QStringLiteral("%1%").arg(static_cast<int>(meterLevel() * 100.0f));
+}
+
+void TrackViewModel::setBlockedBySolo(bool blockedBySolo)
+{
+    if (m_blockedBySolo == blockedBySolo) {
+        return;
+    }
+
+    const bool wasAudible = audible();
+    m_blockedBySolo = blockedBySolo;
+    if (wasAudible != audible()) {
+        emit audibleChanged();
+        emit meterLevelChanged();
+    }
+}
+
+void TrackViewModel::setMeterLevel(float meterLevel)
+{
+    const float clamped = std::clamp(meterLevel, 0.0f, 1.0f);
+    if (qFuzzyCompare(m_meterLevel, clamped)) {
+        return;
+    }
+
+    m_meterLevel = clamped;
+    emit meterLevelChanged();
+}
+
 void TrackViewModel::setVolume(float volume)
 {
     const float clamped = std::clamp(volume, 0.0f, 1.0f);
@@ -62,8 +118,13 @@ void TrackViewModel::setMuted(bool muted)
         return;
     }
 
+    const bool wasAudible = audible();
     m_muted = muted;
     emit mutedChanged();
+    if (wasAudible != audible()) {
+        emit audibleChanged();
+        emit meterLevelChanged();
+    }
 }
 
 void TrackViewModel::setSolo(bool solo)

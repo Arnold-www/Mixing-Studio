@@ -1,17 +1,23 @@
 # Report Workspace
 
-该目录用于记录项目报告所需证据，重点服务最终报告提交。
+该目录用于记录项目报告所需证据。
 
-## 目录说明
+## 当前进度
 
-- `member-A/`：成员 A 的 Model、DSP、Persistence 实现过程。
-- `member-B/`：成员 B 的 ViewModel、View、Report 实现过程。
-- `shared/`：两人共享的总报告材料、大模型使用记录、互测记录、工具链记录。
+**阶段一（2026-07-11）：** 成员 A 使用 AI 完成 Model/DSP 基建；已与成员 B `chai/feat` 本地 merge 并通过交叉测试。
+
+| 目录 | 内容 |
+| :--- | :--- |
+| `member-A/` | A 侧阶段一实现记录 → 见 [`member-A/README.md`](member-A/README.md) |
+| `member-B/` | B 侧 ViewModel/QML 实现记录 |
+| `shared/AI_USAGE_LOG.md` | 大模型使用记录 |
+| `shared/CROSS_TEST_LOG.md` | 交叉测试记录 |
+| `shared/TEST_AND_TOOLCHAIN.md` | 测试与工具链记录 |
 
 ## 必须保留的证据
 
-1. 每个阶段的大模型使用记录。
-2. 每个成员的有效提交记录。
-3. 每个阶段的交叉测试记录。
-4. 单元测试、手动测试、构建工具或持续集成记录。
-5. 关键功能截图、关键代码截图和问题修复记录。
+1. 每个阶段的大模型使用记录
+2. 每个成员的有效提交记录
+3. 每个阶段的交叉测试记录
+4. 单元测试与构建验证记录
+5. 关键功能截图

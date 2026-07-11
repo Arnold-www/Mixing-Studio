@@ -2,6 +2,8 @@
 
 #include <QFileInfo>
 
+#include <algorithm>
+
 AudioEngine::AudioEngine(QObject *parent)
     : QObject(parent)
 {
@@ -15,6 +17,11 @@ QStringList AudioEngine::tracks() const
 bool AudioEngine::isPlaying() const
 {
     return m_isPlaying;
+}
+
+float AudioEngine::masterVolume() const
+{
+    return m_masterVolume;
 }
 
 void AudioEngine::importTrack(const QString &path)
@@ -54,6 +61,6 @@ void AudioEngine::stop()
 
 void AudioEngine::setMasterVolume(float volume)
 {
-    m_masterVolume = volume;
+    m_masterVolume = std::clamp(volume, 0.0f, 1.0f);
     emit statusMessageChanged(QStringLiteral("Master volume: %1").arg(m_masterVolume, 0, 'f', 2));
 }

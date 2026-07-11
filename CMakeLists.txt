@@ -22,6 +22,10 @@ qt_add_executable(MixingStudio
     src/ViewModel/MixerViewModel.cpp
 )
 
+set_target_properties(MixingStudio PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
 qt_add_qml_module(MixingStudio
     URI MixingStudio
     VERSION 1.0
@@ -41,3 +45,17 @@ target_include_directories(MixingStudio
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+enable_testing()
+
+add_executable(test_dsp_processor
+    tests/test_dsp_processor.cpp
+    src/DSP/DspProcessor.cpp
+)
+
+target_include_directories(test_dsp_processor
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_test(NAME dsp_processor COMMAND test_dsp_processor)

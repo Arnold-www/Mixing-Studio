@@ -1,7 +1,5 @@
 #pragma once
 
-#include <QtGlobal>
-
 class DspProcessor
 {
 public:
