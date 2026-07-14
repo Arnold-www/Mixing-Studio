@@ -89,8 +89,6 @@ private:
     QVector<TrackViewModel *> m_tracks;
     QString m_statusMessage = QStringLiteral("Ready.");
     float m_masterVolume = 1.0f;
-    int m_positionSeconds = 0;
-    int m_durationSeconds = 180;
     bool m_anySolo = false;
     int m_analysisFrame = 0;
     QVariantList m_waveformPoints;

@@ -26,14 +26,15 @@ cd "$ROOT_DIR"
 export CMAKE_PREFIX_PATH="$QT_PATH"
 export PATH="$QT_PATH/bin:$PATH"
 
-echo "Sprint 1 test runner"
+echo "Test runner"
 cmake -S . -B "$BUILD_DIR" -DCMAKE_PREFIX_PATH="$QT_PATH"
 
 if [[ "$WITH_APP" == "1" ]]; then
   cmake --build "$BUILD_DIR" --config "$CONFIG"
 else
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_dsp_processor
+  cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_audio_engine || true
 fi
 
-ctest --test-dir "$BUILD_DIR" -C "$CONFIG" --output-on-failure -R dsp_processor
-echo "Sprint 1 DSP tests passed."
+ctest --test-dir "$BUILD_DIR" -C "$CONFIG" --output-on-failure
+echo "All tests passed."
