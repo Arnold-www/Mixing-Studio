@@ -1,5 +1,5 @@
-build/
-build-qt/
+/build/
+/build-*/
 out/
 .vs/
 .vscode/
