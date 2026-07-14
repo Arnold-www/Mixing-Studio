@@ -47,6 +47,7 @@ signals:
     void soloChanged();
     void audibleChanged();
     void meterLevelChanged();
+    void dspParamsChanged();
 
 private:
     QString m_name;

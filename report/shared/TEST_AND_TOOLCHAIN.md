@@ -25,7 +25,7 @@ cmake --build build-qt
 - Qt 版本：6.5.3 (msvc2019_64)，通过 `aqtinstall` 安装于 `D:\Qt\6.5.3\msvc2019_64`
 - CMake 版本：3.31.3
 - 编译器：MSVC 17.14 (Visual Studio 2022)
-- 当前分支：`feature/A-model-dsp-sprint1-infra`（已 merge `origin/chai/feat`）
+- 当前分支：`feature/A-model-dsp-sprint2-playback`（基于阶段 1 + `chai/feat`）
 - 构建命令：
 
 ```powershell
@@ -35,7 +35,7 @@ cmake -S . -B build -DCMAKE_PREFIX_PATH="D:\Qt\6.5.3\msvc2019_64"
 cmake --build build --config Debug
 ```
 
-## 阶段一一键测试（A+B 合并后）
+## 一键测试
 
 ```powershell
 .\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64" -WithApp
@@ -62,12 +62,18 @@ WITH_APP=1 ./scripts/run_tests.sh
 | 2026-07-11 | 单元测试 | A 侧阶段 1 DSP 骨架 | `.\scripts\run_tests.ps1 -WithApp` | 通过，1/1 | 无 | `2654de0` |
 | 2026-07-11 | 架构检查 | A+B 阶段 1 合并后 MVVM 边界 | `.\scripts\validate_feature.ps1` | 通过，13/13 | 无 | `9cac45c` |
 | 2026-07-11 | 集成构建 | A+B 阶段 1 本地 merge | merge `chai/feat` 后全量构建 | 通过 | 无 | `9cac45c` |
+| 2026-07-11 | 单元测试 | A 侧阶段 2 播放闭环 | `ctest --test-dir build -C Debug --output-on-failure` | 通过，2/2 | 无 | `b244414` |
+| 2026-07-11 | 集成构建 | A 侧阶段 2 App + Model 时钟对接 | `cmake --build build --config Debug` | 通过，生成 `MixingStudio.exe` | 无 | `b244414` |
+| 2026-07-14 | 单元测试 | A 侧阶段 3 混音/EQ/压缩/限幅 | `.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64"` | 通过，2/2 | 无 | `7291c53` |
+| 2026-07-14 | 集成构建 | A 侧阶段 3 MixingStudio | `cmake --build build --config Debug --target MixingStudio` | 通过 | 无 | `7291c53` |
+| 2026-07-14 | 架构检查 | 阶段 3 MVVM 边界 | `.\scripts\validate_feature.ps1` | 通过，13/13 | 无 | `7291c53` |
 
-## 最近一次 CTest 输出（A 侧阶段 1）
+## 最近一次 CTest 输出（A 侧阶段 3）
 
 ```text
-1/1 Test #1: dsp_processor ....................   Passed    0.01 sec
-100% tests passed, 0 tests failed out of 1
+1/2 Test #1: dsp_processor ....................   Passed    0.01 sec
+2/2 Test #2: audio_engine .....................   Passed    0.49 sec
+100% tests passed, 0 tests failed out of 2
 ```
 
 ## 报告截图清单

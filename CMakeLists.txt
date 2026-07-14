@@ -59,3 +59,28 @@ target_include_directories(test_dsp_processor
 )
 
 add_test(NAME dsp_processor COMMAND test_dsp_processor)
+
+add_executable(test_audio_engine
+    tests/test_audio_engine.cpp
+    include/Model/AudioEngine.h
+    src/Model/AudioEngine.cpp
+    src/DSP/DspProcessor.cpp
+)
+
+set_target_properties(test_audio_engine PROPERTIES AUTOMOC ON)
+
+target_include_directories(test_audio_engine
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(test_audio_engine
+    PRIVATE
+        Qt6::Core
+)
+
+add_test(NAME audio_engine COMMAND test_audio_engine)
+
+set_tests_properties(audio_engine PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+)
