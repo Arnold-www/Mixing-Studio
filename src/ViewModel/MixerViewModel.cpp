@@ -29,19 +29,24 @@ MixerViewModel::MixerViewModel(AudioEngine *audioEngine, QObject *parent)
       })
 {
     connect(m_audioEngine, &AudioEngine::playbackStateChanged, this, &MixerViewModel::playingChanged);
-    connect(m_audioEngine, &AudioEngine::playbackStateChanged, this, &MixerViewModel::updatePlaybackTimer);
     connect(m_audioEngine, &AudioEngine::statusMessageChanged, this, &MixerViewModel::setStatusMessage);
-
-    m_playbackTimer.setInterval(1000);
-    connect(&m_playbackTimer, &QTimer::timeout, this, [this]() {
-        if (m_positionSeconds >= m_durationSeconds) {
-            stop();
-            return;
-        }
-
-        setPositionSeconds(m_positionSeconds + 1);
+    connect(m_audioEngine, &AudioEngine::positionChanged, this, [this]() {
+        emit playbackPositionChanged();
         updateMockAnalysisData();
     });
+    connect(m_audioEngine, &AudioEngine::durationChanged, this, &MixerViewModel::durationChanged);
+    connect(m_audioEngine, &AudioEngine::masterVolumeChanged, this, [this]() {
+        if (!m_audioEngine) {
+            return;
+        }
+        m_masterVolume = m_audioEngine->masterVolume();
+        emit masterVolumeChanged();
+    });
+
+    // Keep a light analysis refresh timer only while Model reports playing.
+    m_playbackTimer.setInterval(200);
+    connect(&m_playbackTimer, &QTimer::timeout, this, &MixerViewModel::updateMockAnalysisData);
+    connect(m_audioEngine, &AudioEngine::playbackStateChanged, this, &MixerViewModel::updatePlaybackTimer);
 
     updateMockAnalysisData();
     refreshFilteredAssetNames();
@@ -69,26 +74,27 @@ float MixerViewModel::masterVolume() const
 
 int MixerViewModel::positionSeconds() const
 {
-    return m_positionSeconds;
+    return m_audioEngine ? m_audioEngine->positionMs() / 1000 : 0;
 }
 
 int MixerViewModel::durationSeconds() const
 {
-    return m_durationSeconds;
+    return m_audioEngine ? m_audioEngine->durationMs() / 1000 : 0;
 }
 
 float MixerViewModel::playbackProgress() const
 {
-    if (m_durationSeconds <= 0) {
+    if (!m_audioEngine || m_audioEngine->durationMs() <= 0) {
         return 0.0f;
     }
 
-    return static_cast<float>(m_positionSeconds) / static_cast<float>(m_durationSeconds);
+    return static_cast<float>(m_audioEngine->positionMs())
+        / static_cast<float>(m_audioEngine->durationMs());
 }
 
 QString MixerViewModel::playbackTimeText() const
 {
-    return QStringLiteral("%1 / %2").arg(formatTime(m_positionSeconds), formatTime(m_durationSeconds));
+    return QStringLiteral("%1 / %2").arg(formatTime(positionSeconds()), formatTime(durationSeconds()));
 }
 
 bool MixerViewModel::anySolo() const
@@ -182,7 +188,6 @@ void MixerViewModel::pause()
 void MixerViewModel::stop()
 {
     m_audioEngine->stop();
-    setPositionSeconds(0);
 }
 
 void MixerViewModel::setMasterVolume(float volume)
@@ -199,8 +204,12 @@ void MixerViewModel::setMasterVolume(float volume)
 
 void MixerViewModel::seekToProgress(float progress)
 {
+    if (!m_audioEngine || m_audioEngine->durationMs() <= 0) {
+        return;
+    }
+
     const float clamped = std::clamp(progress, 0.0f, 1.0f);
-    setPositionSeconds(static_cast<int>(clamped * m_durationSeconds));
+    m_audioEngine->seek(static_cast<int>(clamped * m_audioEngine->durationMs()));
 }
 
 void MixerViewModel::setAssetSearchText(const QString &text)
@@ -235,13 +244,11 @@ void MixerViewModel::setStatusMessage(const QString &message)
 
 void MixerViewModel::setPositionSeconds(int positionSeconds)
 {
-    const int clamped = std::clamp(positionSeconds, 0, m_durationSeconds);
-    if (m_positionSeconds == clamped) {
+    if (!m_audioEngine) {
         return;
     }
 
-    m_positionSeconds = clamped;
-    emit playbackPositionChanged();
+    m_audioEngine->seek(positionSeconds * 1000);
 }
 
 void MixerViewModel::updatePlaybackTimer()

@@ -14,6 +14,7 @@
 | 2026-07-11 | A | Windows Qt 环境 / 构建脚本 | Codex | AI 辅助环境配置，人工运行验证 | 为 Windows 本机安装 Qt 并保留可复用构建脚本，确保 `chai/feat` 可在 Windows 构建 | 使用 `aqtinstall` 安装 Qt 6.5.3；新增 `scripts/configure_qt_windows.ps1` 一键配置和构建 | 人工运行安装、配置和构建命令；确认生成 `build/bin/Debug/MixingStudio.exe` | `configure_qt_windows.ps1` 运行通过；Windows Debug 构建通过 | `dbe9213` |
 | 2026-07-11 | A | 阶段 1 / Model/DSP 基建与测试骨架 | Codex | AI 主导代码生成，人工审查与合并验证 | 实现阶段一基建，并与 B feat 本地 merge 测试 | `DspProcessor`、`AudioEngine` getter/clamp、DSP 测试、CMake CTest、`run_tests.ps1` | 从 main 基线开发；merge `chai/feat`；运行架构检查 | CTest 1/1；`validate_feature` 13/13 | `2654de0` |
 | 2026-07-11 | A | 阶段 1.1 / A+B 本地合并交叉测试 | Codex | AI 主导合并与验证，人工确认接口边界 | 将 `origin/chai/feat` 合并到 A 侧阶段一分支，验证 MVVM 边界和 VM→Model 调用链 | 本地 merge 成功；更新 `CROSS_TEST_LOG.md`、`TEST_AND_TOOLCHAIN.md` | 人工确认 QML 不越层、播放/导入命令正确转发 | 合并后全量构建通过；A 侧本地互测通过 | `9cac45c` |
+| 2026-07-11 | A | 阶段 2 / 播放闭环底层接口 | Codex | AI 主导代码生成，人工构建与测试验证 | 构建阶段 2：导入、多轨、播放、Seek、Loop、主音量 | `AudioEngine` 播放定时器、Seek/Loop、`test_audio_engine`；VM 进度对接 Model 时钟 | 默认不自动开启 Loop；保留 B 侧 Mock 分析刷新 | CTest 2/2 通过；App 构建通过 | 待提交 |
 
 ## 采用模式示例
 

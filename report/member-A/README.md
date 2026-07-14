@@ -74,3 +74,23 @@
 - 成员 B 交叉测试结果：A 侧本地交叉测试通过；待 B 复测 `AudioEngine` 接口可用性与 DSP 测试结果。
 - 对应提交：`9cac45c`、`7e49d75`
 - 可放入报告的证据：`validate_feature.ps1` 输出、合并后构建日志、`report/shared/CROSS_TEST_LOG.md`、主界面运行截图。
+
+## 阶段 2：播放闭环底层接口
+
+- 日期：2026-07-11
+- 使用的大模型：Codex
+- 采用模式：AI 主导代码生成，人工构建与测试验证。
+- 提示词摘要：尝试构建阶段 2，跑通本地音频导入、多轨加载、播放状态、Seek、Loop、主音量底层接口。
+- AI 输出内容：
+  - `AudioEngine` 增加 `AudioTrack` 元数据、`positionMs`/`durationMs`、播放定时器推进、`seek`、`setLoopRange`、`clearTracks`。
+  - 导入后使用 180000ms 占位时长（真实解码留待后续阶段）。
+  - 新增 `tests/test_audio_engine.cpp`，覆盖导入、播放推进、暂停、Seek clamp、Loop 回绕、主音量边界。
+  - 最小改动对接 `MixerViewModel`：进度与 Seek 改为消费 Model 时钟，Mock 波形/频谱仍由 B 侧分析定时器刷新。
+  - 更新 `run_tests.ps1` 运行全部 CTest。
+- 人工修改内容：默认不自动开启 Loop（`loopEndMs == 0` 表示无循环）；从 `feature/A-model-dsp-sprint1-infra` 创建 `feature/A-model-dsp-sprint2-playback`。
+- 自测结果：
+  - 已运行 `cmake --build build --config Debug`，应用与测试构建通过。
+  - 已运行 `ctest --test-dir build -C Debug --output-on-failure`，CTest 2/2 通过。
+- 成员 B 交叉测试结果：待成员 B 使用 UI 验证 Play/Pause/Stop/Seek/进度条是否与 Model 时钟一致。
+- 对应提交：待提交
+- 可放入报告的证据：`test_audio_engine.cpp`、CTest 2/2 输出、播放进度对接代码。

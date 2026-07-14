@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Sprint 1 one-click configure, build, and run DSP unit tests.
+    One-click configure, build, and run CTest targets.
 #>
 [CmdletBinding()]
 param(
@@ -46,7 +46,7 @@ $resolvedQtPath = Resolve-QtPath -PreferredPath $QtPath
 $env:PATH = "$(Join-Path $resolvedQtPath 'bin');$env:PATH"
 $env:CMAKE_PREFIX_PATH = $resolvedQtPath
 
-Write-Host "Sprint 1 test runner"
+Write-Host "Test runner"
 Write-Host "Repository : $repoRoot"
 Write-Host "Qt Path    : $resolvedQtPath"
 
@@ -57,9 +57,12 @@ if (-not $SkipConfigure) {
 if ($WithApp) {
     Invoke-Step "Build app + tests" { cmake --build $BuildDir --config $Config }
 } else {
-    Invoke-Step "Build DSP test" { cmake --build $BuildDir --config $Config --target test_dsp_processor }
+    Invoke-Step "Build tests" {
+        cmake --build $BuildDir --config $Config --target test_dsp_processor
+        cmake --build $BuildDir --config $Config --target test_audio_engine
+    }
 }
 
-Invoke-Step "Run CTest (dsp_processor)" { ctest --test-dir $BuildDir -C $Config --output-on-failure -R dsp_processor }
+Invoke-Step "Run CTest" { ctest --test-dir $BuildDir -C $Config --output-on-failure }
 
-Write-Host "`nSprint 1 DSP tests passed." -ForegroundColor Green
+Write-Host "`nAll tests passed." -ForegroundColor Green
