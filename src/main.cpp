@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 
+#include <App/MixerApp.h>
 #include <Model/AudioEngine.h>
 #include <ViewModel/MixerViewModel.h>
 
@@ -10,7 +11,8 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     AudioEngine audioEngine;
-    MixerViewModel mixerViewModel(&audioEngine);
+    MixerApp mixerApp(&audioEngine);
+    MixerViewModel mixerViewModel(&mixerApp);
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("mixerViewModel", &mixerViewModel);

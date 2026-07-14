@@ -19,6 +19,7 @@ struct StereoSample
     float right = 0.0f;
 };
 
+// Realtime mix chain: gain, pan, EQ, compressor, linear sum, master limit.
 class DspProcessor
 {
 public:

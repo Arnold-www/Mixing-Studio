@@ -67,13 +67,18 @@ WITH_APP=1 ./scripts/run_tests.sh
 | 2026-07-14 | 单元测试 | A 侧阶段 3 混音/EQ/压缩/限幅 | `.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64"` | 通过，2/2 | 无 | `7291c53` |
 | 2026-07-14 | 集成构建 | A 侧阶段 3 MixingStudio | `cmake --build build --config Debug --target MixingStudio` | 通过 | 无 | `7291c53` |
 | 2026-07-14 | 架构检查 | 阶段 3 MVVM 边界 | `.\scripts\validate_feature.ps1` | 通过，13/13 | 无 | `7291c53` |
+| 2026-07-14 | 单元测试 | A 侧阶段 4 分析/JSON/SQLite | `.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64"` | 通过，4/4 | 无 | 待提交 |
+| 2026-07-14 | 集成构建 | A 侧阶段 4 MixingStudio + Sql | `cmake --build build --config Debug --target MixingStudio` | 通过 | 无 | 待提交 |
+| 2026-07-14 | 架构检查 | 阶段 4 MVVM 边界 | `.\scripts\validate_feature.ps1` | 通过，13/13 | 无 | 待提交 |
 
-## 最近一次 CTest 输出（A 侧阶段 3）
+## 最近一次 CTest 输出（A 侧阶段 4）
 
 ```text
-1/2 Test #1: dsp_processor ....................   Passed    0.01 sec
-2/2 Test #2: audio_engine .....................   Passed    0.49 sec
-100% tests passed, 0 tests failed out of 2
+1/4 Test #1: dsp_processor ....................   Passed
+2/4 Test #2: audio_engine .....................   Passed
+3/4 Test #3: project_store ....................   Passed
+4/4 Test #4: asset_library ....................   Passed
+100% tests passed, 0 tests failed out of 4
 ```
 
 ## 报告截图清单

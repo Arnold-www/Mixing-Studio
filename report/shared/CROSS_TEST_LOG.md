@@ -8,6 +8,7 @@
 | 2026-07-11 | 阶段 1：基建与发声（A+B 本地 merge） | 成员 A + 成员 B | 成员 A（本地） | merge `chai/feat` 到 `feature/A-model-dsp-sprint1-infra`；`run_tests.ps1 -WithApp`；`validate_feature.ps1`；审查 VM→Model 调用链 | 无阻塞问题 | 不适用 | 待 B 在 macOS 复测后可合入 | `2654de0`、`9cac45c` |
 | 2026-07-11 | 阶段 2：播放闭环 | 成员 A | 成员 A（自测） | `AudioEngine` 导入/播放/Seek/Loop；`test_audio_engine`；VM 进度对接 Model | 无 | 不适用 | 待 B 用 UI 交叉测试后可合入 | `b244414` |
 | 2026-07-14 | 阶段 3：混音与 DSP（仅 A） | 成员 A | 成员 A（自测） | DSP EQ/压缩/混音/限幅；`renderMixFrame` Mute/Solo/Pan；Engine 轨参 API；`validate_feature` | 无阻塞；B 侧 EQ/Comp UI 不在本阶段 | 不适用 | 待 B 完成控件后交叉；底层可先合入互测 | `7291c53` |
+| 2026-07-14 | 阶段 4：分析与持久化（仅 A） | 成员 A | 成员 A（自测） | 波形/VU/频谱/削波；JSON 工程；SQLite 素材库；CTest 4/4 | 无阻塞；B 仍用 Mock 可视化 | 不适用 | 待 B 改绑 Model 后交叉 | 待提交 |
 
 ## 检查重点
 
@@ -59,6 +60,18 @@
 | QML 仅经 ViewModel | ✅ | `validate_feature` 13/13 |
 | CTest 全绿 | ✅ | 2/2 |
 | B UI 交叉试听/参数观察 | 待填 | EQ/Comp/Bypass 控件属 B；当前以单测验收 A |
+
+## 阶段 4 检查项（A 自测）
+
+| 检查项 | 结果 | 说明 |
+| :----- | :--- | :--- |
+| 波形降采样 / VU / 频谱 / 削波 | ✅ | `test_dsp_processor` |
+| `AudioEngine::refreshAnalysis` | ✅ | 64 / 18 bins |
+| JSON 工程 round-trip | ✅ | `test_project_store` |
+| SQLite 素材 upsert/搜索/recent | ✅ | `test_asset_library` |
+| CTest 全绿 | ✅ | 4/4 |
+| `validate_feature` | ✅ | 13/13 |
+| B 改绑分析/工程 UI | 待填 | Mock 仍在 ViewModel |
 
 ## 一键命令
 

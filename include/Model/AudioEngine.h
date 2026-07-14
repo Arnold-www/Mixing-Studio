@@ -8,22 +8,9 @@
 #include <QVector>
 
 #include <DSP/DspProcessor.h>
+#include <Model/AudioTrack.h>
 
-struct AudioTrack
-{
-    QString sourcePath;
-    QString displayName;
-    float volume = 0.8f;
-    float pan = 0.0f;
-    bool muted = false;
-    bool solo = false;
-    float eqLowDb = 0.0f;
-    float eqMidDb = 0.0f;
-    float eqHighDb = 0.0f;
-    float compThreshold = 0.7f;
-    float compRatio = 4.0f;
-    bool fxBypass = false;
-};
+class AssetLibrary;
 
 class AudioEngine : public QObject
 {
@@ -34,9 +21,15 @@ class AudioEngine : public QObject
     Q_PROPERTY(float masterVolume READ masterVolume WRITE setMasterVolume NOTIFY masterVolumeChanged)
     Q_PROPERTY(int loopStartMs READ loopStartMs NOTIFY loopRangeChanged)
     Q_PROPERTY(int loopEndMs READ loopEndMs NOTIFY loopRangeChanged)
+    Q_PROPERTY(QVector<float> waveformPoints READ waveformPoints NOTIFY analysisChanged)
+    Q_PROPERTY(QVector<float> spectrumLevels READ spectrumLevels NOTIFY analysisChanged)
+    Q_PROPERTY(float vuLevel READ vuLevel NOTIFY analysisChanged)
+    Q_PROPERTY(float peakLevel READ peakLevel NOTIFY analysisChanged)
+    Q_PROPERTY(bool clippingDetected READ clippingDetected NOTIFY analysisChanged)
 
 public:
     explicit AudioEngine(QObject *parent = nullptr);
+    ~AudioEngine() override;
 
     QStringList tracks() const;
     QList<AudioTrack> trackData() const;
@@ -49,7 +42,12 @@ public:
     int loopEndMs() const;
     bool trackAudible(int index) const;
 
-    // Offline mix of one mono sample per track through volume/pan/EQ/comp/bypass + master limit.
+    QVector<float> waveformPoints() const;
+    QVector<float> spectrumLevels() const;
+    float vuLevel() const;
+    float peakLevel() const;
+    bool clippingDetected() const;
+
     StereoSample renderMixFrame(const QVector<float> &trackMonoSamples) const;
 
 public slots:
@@ -68,6 +66,13 @@ public slots:
     void setTrackEq(int index, float lowDb, float midDb, float highDb);
     void setTrackCompressor(int index, float threshold, float ratio);
     void setTrackFxBypass(int index, bool bypass);
+    void refreshAnalysis();
+    bool saveProject(const QString &path);
+    bool loadProject(const QString &path);
+    bool openAssetLibrary(const QString &databasePath);
+    bool registerAsset(const QString &path, const QString &displayName = QString());
+    QStringList searchAssets(const QString &query) const;
+    QStringList recentAssets(int limit = 10) const;
 
 signals:
     void tracksChanged();
@@ -77,6 +82,7 @@ signals:
     void masterVolumeChanged();
     void loopRangeChanged();
     void trackParamsChanged(int index);
+    void analysisChanged();
     void statusMessageChanged(const QString &message);
 
 private slots:
@@ -88,9 +94,13 @@ private:
     void setPositionMs(int positionMs);
     void setDurationMs(int durationMs);
     bool anySolo() const;
+    void rebuildPlaceholderBuffer();
 
     static constexpr int kPlaybackTickMs = 50;
     static constexpr int kPlaceholderDurationMs = 180000;
+    static constexpr int kAnalysisBufferSamples = 512;
+    static constexpr int kWaveformBins = 64;
+    static constexpr int kSpectrumBands = 18;
 
     QTimer m_playbackTimer;
     QList<AudioTrack> m_tracks;
@@ -100,4 +110,12 @@ private:
     int m_loopStartMs = 0;
     int m_loopEndMs = 0;
     float m_masterVolume = 1.0f;
+
+    QVector<float> m_analysisBuffer;
+    QVector<float> m_waveformPoints;
+    QVector<float> m_spectrumLevels;
+    float m_vuLevel = 0.0f;
+    float m_peakLevel = 0.0f;
+    bool m_clippingDetected = false;
+    AssetLibrary *m_assetLibrary = nullptr;
 };

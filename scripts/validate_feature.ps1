@@ -43,11 +43,19 @@ $results += Add-Result `
 $results += Add-Result `
     -Name "No headers under src" `
     -Passed (-not (Get-ChildItem -Path "src" -Recurse -Filter "*.h" -ErrorAction SilentlyContinue)) `
-    -Detail "Headers should live under include/DSP, include/Model, include/ViewModel."
+    -Detail "Headers should live under include/DSP, include/Model, include/App, include/Command, include/ViewModel."
 
 $requiredHeaders = @(
     "include/DSP/DspProcessor.h",
+    "include/DSP/DspAnalysis.h",
     "include/Model/AudioEngine.h",
+    "include/Model/AudioTrack.h",
+    "include/App/MixerApp.h",
+    "include/Command/ICommand.h",
+    "include/Command/PlaybackCommands.h",
+    "include/Command/ProjectCommands.h",
+    "include/Command/TrackDspCommands.h",
+    "include/Command/MixerCommands.h",
     "include/ViewModel/MixerViewModel.h",
     "include/ViewModel/TrackViewModel.h"
 )
@@ -63,13 +71,13 @@ $qmlFiles = @(Get-ChildItem -Path "src/View" -Recurse -Include "*.qml" -ErrorAct
 $qmlBoundaryViolations = @()
 foreach ($file in $qmlFiles) {
     $content = Get-Content -LiteralPath $file.FullName -Raw
-    if ($content -match "AudioEngine|DspProcessor|src/Model|src/DSP") {
+    if ($content -match "AudioEngine|DspProcessor|MixerApp|ICommand|PlayCommand|src/Model|src/DSP|src/App|src/Command") {
         $qmlBoundaryViolations += $file.FullName
     }
 }
 
 $results += Add-Result `
-    -Name "QML does not directly access Model/DSP" `
+    -Name "QML does not directly access Command/App/Model/DSP" `
     -Passed ($qmlBoundaryViolations.Count -eq 0) `
     -Detail (($qmlBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
 
@@ -79,15 +87,45 @@ $modelDspFiles += Get-ChildItem -Path "src/DSP" -Recurse -Include "*.cpp" -Error
 $modelDspBoundaryViolations = @()
 foreach ($file in $modelDspFiles) {
     $content = Get-Content -LiteralPath $file.FullName -Raw
-    if ($content -match "ViewModel|QQml|QQuick|Main.qml|src/View") {
+    if ($content -match "ViewModel|MixerApp|ICommand|QQml|QQuick|Main.qml|src/View|src/App|src/Command") {
         $modelDspBoundaryViolations += $file.FullName
     }
 }
 
 $results += Add-Result `
-    -Name "Model/DSP do not depend on View/ViewModel" `
+    -Name "Model/DSP do not depend on Command/App/View/ViewModel" `
     -Passed ($modelDspBoundaryViolations.Count -eq 0) `
     -Detail (($modelDspBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
+
+$appFiles = @()
+$appFiles += Get-ChildItem -Path "src/App" -Recurse -Include "*.cpp" -ErrorAction SilentlyContinue
+$appBoundaryViolations = @()
+foreach ($file in $appFiles) {
+    $content = Get-Content -LiteralPath $file.FullName -Raw
+    if ($content -match "ViewModel|ICommand|MixerCommands|QQml|QQuick|Main.qml|src/View|src/Command") {
+        $appBoundaryViolations += $file.FullName
+    }
+}
+
+$results += Add-Result `
+    -Name "App does not depend on Command/View/ViewModel" `
+    -Passed ($appBoundaryViolations.Count -eq 0) `
+    -Detail (($appBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
+
+$commandFiles = @()
+$commandFiles += Get-ChildItem -Path "src/Command" -Recurse -Include "*.cpp" -ErrorAction SilentlyContinue
+$commandBoundaryViolations = @()
+foreach ($file in $commandFiles) {
+    $content = Get-Content -LiteralPath $file.FullName -Raw
+    if ($content -match "ViewModel|QQml|QQuick|Main.qml|src/View") {
+        $commandBoundaryViolations += $file.FullName
+    }
+}
+
+$results += Add-Result `
+    -Name "Command does not depend on View/ViewModel" `
+    -Passed ($commandBoundaryViolations.Count -eq 0) `
+    -Detail (($commandBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
 
 $featureScopeViolations = @()
 if ($FeatureBranch -match "chai/feat|feature/B|B-|vm|view") {

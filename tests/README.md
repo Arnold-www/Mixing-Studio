@@ -4,16 +4,20 @@
 
 | 测试目标 | 源文件 | 覆盖范围 |
 | :------- | :----- | :------- |
-| `dsp_processor` | `test_dsp_processor.cpp` | clamp/gain/pan、`dbToLinear`、三段 EQ、压缩器、轨处理、线性混音、主总线限幅 |
-| `audio_engine` | `test_audio_engine.cpp` | 导入/播放/Seek/Loop/主音量；轨音量/Pan/Mute/Solo/EQ/压缩/Bypass；`renderMixFrame` 离线混音 |
+| `dsp_processor` | `test_dsp_processor.cpp` | clamp/gain/pan、EQ/压缩/混音/限幅；波形降采样、VU、频谱、峰值/削波 |
+| `audio_engine` | `test_audio_engine.cpp` | 播放闭环；轨 DSP 混音；`refreshAnalysis` 波形/频谱点数 |
+| `project_store` | `test_project_store.cpp` | JSON 工程保存/加载（主音量、轨参、Loop、位置） |
+| `asset_library` | `test_asset_library.cpp` | SQLite upsert、搜索、最近列表 |
+| `mixer_app` | `test_mixer_app.cpp` | App 层 Solo 用例 `planSolo` |
+| `commands` | `test_commands.cpp` | Command 层 Play/Pause/Import 执行 |
 
-## 阶段三测试计划（自拟）
+## 阶段四测试计划（A 自拟）
 
-1. **DSP 单元**：平坦 EQ 透传；正增益抬升；压缩器按 ratio 压峰值；不可听轨输出静音；混音线性相加后主限幅夹到 ±1。
-2. **Engine 混音**：左右硬分轨；Mute 静音单轨；Solo 屏蔽非 Solo；EQ/压缩在 Bypass 关闭时生效；双轨满幅和经限幅。
-3. **回归**：阶段二播放时钟用例保持通过。
-4. **架构**：`validate_feature.ps1` 确认 QML 不碰 Model/DSP。
-5. **UI（非本阶段 A 必做）**：EQ/Comp/Bypass 控件留给成员 B；现有 Volume/Pan/Mute/Solo 已可同步到 Model。真声卡发声仍非本阶段目标。
+1. **DSP 分析**：正弦波降采样 bins、VU/峰值非零、未削波；注入 1.0 样点触发削波；频谱能量 > 0。
+2. **Engine**：`refreshAnalysis` 输出 64 波形点 / 18 频谱带。
+3. **JSON**：round-trip 恢复轨数、Mute、主音量、Loop、Seek。
+4. **SQLite**：upsert 两条素材，按名搜索与 recent(limit)。
+5. **架构**：`validate_feature.ps1`；QML 仍不直接碰 Model（B 后续改绑）。
 
 ## 一键运行
 
@@ -22,15 +26,4 @@
 .\scripts\validate_feature.ps1
 ```
 
-## 手动运行
-
-```powershell
-cmake -S . -B build -DCMAKE_PREFIX_PATH="D:\Qt\6.5.3\msvc2019_64"
-cmake --build build --config Debug
-ctest --test-dir build -C Debug --output-on-failure
-```
-
-当前应通过：
-
-- `dsp_processor`
-- `audio_engine`
+当前应通过：`dsp_processor`、`audio_engine`、`project_store`、`asset_library`、`mixer_app`、`commands`。

@@ -34,6 +34,8 @@ if [[ "$WITH_APP" == "1" ]]; then
 else
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_dsp_processor
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_audio_engine || true
+  cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_project_store || true
+  cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_asset_library || true
 fi
 
 ctest --test-dir "$BUILD_DIR" -C "$CONFIG" --output-on-failure

@@ -33,7 +33,6 @@ float DspProcessor::dbToLinear(float gainDb)
 
 float DspProcessor::applyThreeBandEq(float sample, float lowDb, float midDb, float highDb)
 {
-    // Broadband proxy of a 3-band EQ: product of band linear gains (0 dB => unity).
     const float gain = dbToLinear(lowDb) * dbToLinear(midDb) * dbToLinear(highDb);
     return applyGain(sample, gain);
 }
@@ -85,7 +84,6 @@ StereoSample DspProcessor::applyMasterChain(const StereoSample &mixed, float mas
     const float gain = std::clamp(masterVolume, 0.0f, 1.0f);
     mastered.left = applyGain(mixed.left, gain);
     mastered.right = applyGain(mixed.right, gain);
-    // Hard limiter / clip guard on master bus.
     mastered.left = clampSample(mastered.left);
     mastered.right = clampSample(mastered.right);
     return mastered;

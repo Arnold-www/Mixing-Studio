@@ -159,5 +159,11 @@ int main(int argc, char *argv[])
     expectNear(mixed.left, 1.0f, "Master limiter should clamp summed peaks");
     expectNear(mixed.right, 1.0f, "Master limiter should clamp right peaks");
 
+    // Stage 4 analysis refresh on placeholder buffer
+    engine.refreshAnalysis();
+    expectTrue(engine.waveformPoints().size() == 64, "Waveform should expose 64 bins");
+    expectTrue(engine.spectrumLevels().size() == 18, "Spectrum should expose 18 bands");
+    expectTrue(engine.peakLevel() >= 0.0f, "Peak level should be non-negative");
+
     return 0;
 }

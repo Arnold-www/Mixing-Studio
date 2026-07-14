@@ -60,6 +60,8 @@ if ($WithApp) {
     Invoke-Step "Build tests" {
         cmake --build $BuildDir --config $Config --target test_dsp_processor
         cmake --build $BuildDir --config $Config --target test_audio_engine
+        cmake --build $BuildDir --config $Config --target test_project_store
+        cmake --build $BuildDir --config $Config --target test_asset_library
     }
 }
 

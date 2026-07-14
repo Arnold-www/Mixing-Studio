@@ -7,9 +7,10 @@
 #include <QVariantList>
 #include <QVector>
 
-class AudioEngine;
+class MixerApp;
 class TrackViewModel;
 
+// ViewModel: QML binding surface + presentation state. Use cases go through MixerApp.
 class MixerViewModel : public QObject
 {
     Q_OBJECT
@@ -29,7 +30,7 @@ class MixerViewModel : public QObject
     Q_PROPERTY(QStringList recentProjectNames READ recentProjectNames NOTIFY recentProjectNamesChanged)
 
 public:
-    explicit MixerViewModel(AudioEngine *audioEngine, QObject *parent = nullptr);
+    explicit MixerViewModel(MixerApp *app, QObject *parent = nullptr);
 
     QQmlListProperty<TrackViewModel> tracks();
     bool playing() const;
@@ -75,7 +76,6 @@ signals:
 private:
     void addTrack(const QString &name);
     void setStatusMessage(const QString &message);
-    void setPositionSeconds(int positionSeconds);
     void updatePlaybackTimer();
     void refreshSoloState();
     void syncTrackToEngine(int index);
@@ -87,7 +87,7 @@ private:
     static qsizetype trackCount(QQmlListProperty<TrackViewModel> *property);
     static TrackViewModel *trackAt(QQmlListProperty<TrackViewModel> *property, qsizetype index);
 
-    AudioEngine *m_audioEngine = nullptr;
+    MixerApp *m_app = nullptr;
     QVector<TrackViewModel *> m_tracks;
     QString m_statusMessage = QStringLiteral("Ready.");
     float m_masterVolume = 1.0f;
