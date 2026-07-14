@@ -120,6 +120,6 @@
   - `cmake --build build --config Debug --target MixingStudio` 通过。
   - `.\scripts\validate_feature.ps1` → **13/13 通过**。
 - 成员 B 交叉测试结果：待 B 后续实现 EQ/Comp/Bypass 控件后再做 UI 交叉；当前可用单测验收 A 底层。
-- 对应提交：待提交
+- 对应提交：`7291c53`
 - 可放入报告的证据：`DspProcessor` 混音链、`AudioEngine::renderMixFrame`、扩展后的 CTest 输出、`tests/README.md` 阶段三测试计划。
 

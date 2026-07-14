@@ -64,9 +64,9 @@ WITH_APP=1 ./scripts/run_tests.sh
 | 2026-07-11 | 集成构建 | A+B 阶段 1 本地 merge | merge `chai/feat` 后全量构建 | 通过 | 无 | `9cac45c` |
 | 2026-07-11 | 单元测试 | A 侧阶段 2 播放闭环 | `ctest --test-dir build -C Debug --output-on-failure` | 通过，2/2 | 无 | `b244414` |
 | 2026-07-11 | 集成构建 | A 侧阶段 2 App + Model 时钟对接 | `cmake --build build --config Debug` | 通过，生成 `MixingStudio.exe` | 无 | `b244414` |
-| 2026-07-14 | 单元测试 | A 侧阶段 3 混音/EQ/压缩/限幅 | `.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64"` | 通过，2/2 | 无 | 待提交 |
-| 2026-07-14 | 集成构建 | A 侧阶段 3 MixingStudio | `cmake --build build --config Debug --target MixingStudio` | 通过 | 无 | 待提交 |
-| 2026-07-14 | 架构检查 | 阶段 3 MVVM 边界 | `.\scripts\validate_feature.ps1` | 通过，13/13 | 无 | 待提交 |
+| 2026-07-14 | 单元测试 | A 侧阶段 3 混音/EQ/压缩/限幅 | `.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64"` | 通过，2/2 | 无 | `7291c53` |
+| 2026-07-14 | 集成构建 | A 侧阶段 3 MixingStudio | `cmake --build build --config Debug --target MixingStudio` | 通过 | 无 | `7291c53` |
+| 2026-07-14 | 架构检查 | 阶段 3 MVVM 边界 | `.\scripts\validate_feature.ps1` | 通过，13/13 | 无 | `7291c53` |
 
 ## 最近一次 CTest 输出（A 侧阶段 3）
 

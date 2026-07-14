@@ -7,7 +7,7 @@
 | 2026-07-11 | B 侧 feature / `chai/feat` | 成员 B | 成员 A | 按规划检查 ViewModel/QML 分层、头文件目录、B 侧分支范围、报告证据文件和 CMake 头文件配置；运行 `scripts/validate_feature.ps1` 和 Windows Qt 构建脚本 | 首次 CMake 配置因 Windows 未配置 Qt6 失败；安装 Qt 6.5.3 后复测通过 | 保留 `scripts/validate_feature.ps1` 和 `scripts/configure_qt_windows.ps1`；静态验证 13 项通过；`cmake --build build --config Debug` 通过并生成 `MixingStudio.exe` | 是，静态验证和 Windows Qt 构建均通过 | `4fcbeaa` |
 | 2026-07-11 | 阶段 1：基建与发声（A+B 本地 merge） | 成员 A + 成员 B | 成员 A（本地） | merge `chai/feat` 到 `feature/A-model-dsp-sprint1-infra`；`run_tests.ps1 -WithApp`；`validate_feature.ps1`；审查 VM→Model 调用链 | 无阻塞问题 | 不适用 | 待 B 在 macOS 复测后可合入 | `2654de0`、`9cac45c` |
 | 2026-07-11 | 阶段 2：播放闭环 | 成员 A | 成员 A（自测） | `AudioEngine` 导入/播放/Seek/Loop；`test_audio_engine`；VM 进度对接 Model | 无 | 不适用 | 待 B 用 UI 交叉测试后可合入 | `b244414` |
-| 2026-07-14 | 阶段 3：混音与 DSP（仅 A） | 成员 A | 成员 A（自测） | DSP EQ/压缩/混音/限幅；`renderMixFrame` Mute/Solo/Pan；Engine 轨参 API；`validate_feature` | 无阻塞；B 侧 EQ/Comp UI 不在本阶段 | 不适用 | 待 B 完成控件后交叉；底层可先合入互测 | 待提交 |
+| 2026-07-14 | 阶段 3：混音与 DSP（仅 A） | 成员 A | 成员 A（自测） | DSP EQ/压缩/混音/限幅；`renderMixFrame` Mute/Solo/Pan；Engine 轨参 API；`validate_feature` | 无阻塞；B 侧 EQ/Comp UI 不在本阶段 | 不适用 | 待 B 完成控件后交叉；底层可先合入互测 | `7291c53` |
 
 ## 检查重点
 
