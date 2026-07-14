@@ -3,6 +3,7 @@
 #include <QCoreApplication>
 #include <QEventLoop>
 #include <QTimer>
+#include <QVector>
 
 #include <cmath>
 #include <cstdlib>
@@ -106,6 +107,57 @@ int main(int argc, char *argv[])
     engine.clearTracks();
     expectEqual(engine.trackCount(), 0, "Clear should remove all tracks");
     expectEqual(engine.durationMs(), 0, "Clear should reset duration");
+
+    // Stage 3: track DSP params + offline mix / mute / solo / limiter path
+    engine.importTrack("Kick.wav");
+    engine.importTrack("Snare.wav");
+    engine.setTrackVolume(0, 1.0f);
+    engine.setTrackVolume(1, 1.0f);
+    engine.setTrackPan(0, -1.0f);
+    engine.setTrackPan(1, 1.0f);
+    engine.setTrackFxBypass(0, true);
+    engine.setTrackFxBypass(1, true);
+    engine.setMasterVolume(1.0f);
+
+    QVector<float> inputs{0.5f, 0.5f};
+    StereoSample mixed = engine.renderMixFrame(inputs);
+    expectNear(mixed.left, 0.5f, "Left-panned track should dominate left bus");
+    expectNear(mixed.right, 0.5f, "Right-panned track should dominate right bus");
+
+    engine.setTrackMuted(0, true);
+    mixed = engine.renderMixFrame(inputs);
+    expectNear(mixed.left, 0.0f, "Muted left track should silence left bus");
+    expectNear(mixed.right, 0.5f, "Right track should remain after mute");
+
+    engine.setTrackMuted(0, false);
+    engine.setTrackSolo(1, true);
+    expectTrue(engine.trackAudible(1), "Soloed track should stay audible");
+    expectTrue(!engine.trackAudible(0), "Non-solo track should be inaudible while solo active");
+    mixed = engine.renderMixFrame(inputs);
+    expectNear(mixed.left, 0.0f, "Solo should silence non-solo left track");
+    expectNear(mixed.right, 0.5f, "Soloed right track should remain");
+
+    engine.setTrackSolo(1, false);
+    engine.setTrackFxBypass(0, false);
+    engine.setTrackEq(0, 6.0f, 0.0f, 0.0f);
+    engine.setTrackPan(0, 0.0f);
+    engine.setTrackPan(1, 0.0f);
+    engine.setTrackVolume(1, 0.0f);
+    mixed = engine.renderMixFrame(QVector<float>{0.2f, 0.0f});
+    expectTrue(mixed.left > 0.2f, "Positive EQ without bypass should raise level");
+
+    engine.setTrackEq(0, 0.0f, 0.0f, 0.0f);
+    engine.setTrackCompressor(0, 0.3f, 4.0f);
+    mixed = engine.renderMixFrame(QVector<float>{1.0f, 0.0f});
+    expectTrue(mixed.left < 1.0f, "Compressor should reduce hot samples");
+
+    engine.setMasterVolume(1.0f);
+    engine.setTrackFxBypass(0, true);
+    engine.setTrackVolume(0, 1.0f);
+    engine.setTrackVolume(1, 1.0f);
+    mixed = engine.renderMixFrame(QVector<float>{1.0f, 1.0f});
+    expectNear(mixed.left, 1.0f, "Master limiter should clamp summed peaks");
+    expectNear(mixed.right, 1.0f, "Master limiter should clamp right peaks");
 
     return 0;
 }

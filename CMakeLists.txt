@@ -64,6 +64,7 @@ add_executable(test_audio_engine
     tests/test_audio_engine.cpp
     include/Model/AudioEngine.h
     src/Model/AudioEngine.cpp
+    src/DSP/DspProcessor.cpp
 )
 
 set_target_properties(test_audio_engine PROPERTIES AUTOMOC ON)

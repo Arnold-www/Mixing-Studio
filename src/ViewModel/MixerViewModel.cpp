@@ -226,9 +226,14 @@ void MixerViewModel::setAssetSearchText(const QString &text)
 void MixerViewModel::addTrack(const QString &name)
 {
     auto *track = new TrackViewModel(name, this);
+    const int index = m_tracks.size();
     connect(track, &TrackViewModel::soloChanged, this, &MixerViewModel::refreshSoloState);
+    connect(track, &TrackViewModel::dspParamsChanged, this, [this, index]() {
+        syncTrackToEngine(index);
+    });
     m_tracks.append(track);
     refreshSoloState();
+    syncTrackToEngine(index);
     emit tracksChanged();
 }
 
@@ -272,10 +277,32 @@ void MixerViewModel::refreshSoloState()
         track->setBlockedBySolo(m_anySolo && !track->solo());
     }
 
+    syncAllTracksToEngine();
+
     if (previousAnySolo != m_anySolo) {
         emit soloStateChanged();
         setStatusMessage(m_anySolo ? QStringLiteral("Solo monitoring enabled.")
                                    : QStringLiteral("Solo monitoring cleared."));
+    }
+}
+
+void MixerViewModel::syncTrackToEngine(int index)
+{
+    if (!m_audioEngine || index < 0 || index >= m_tracks.size()) {
+        return;
+    }
+
+    TrackViewModel *track = m_tracks.at(index);
+    m_audioEngine->setTrackVolume(index, track->volume());
+    m_audioEngine->setTrackPan(index, track->pan());
+    m_audioEngine->setTrackMuted(index, track->muted());
+    m_audioEngine->setTrackSolo(index, track->solo());
+}
+
+void MixerViewModel::syncAllTracksToEngine()
+{
+    for (int i = 0; i < m_tracks.size(); ++i) {
+        syncTrackToEngine(i);
     }
 }
 

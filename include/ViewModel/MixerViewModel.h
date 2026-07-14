@@ -78,6 +78,8 @@ private:
     void setPositionSeconds(int positionSeconds);
     void updatePlaybackTimer();
     void refreshSoloState();
+    void syncTrackToEngine(int index);
+    void syncAllTracksToEngine();
     void updateMockAnalysisData();
     void refreshFilteredAssetNames();
     QString formatTime(int seconds) const;

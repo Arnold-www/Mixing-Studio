@@ -28,11 +28,13 @@
 
 ## A 侧阶段拆分
 
-1.  阶段 1：搭建 CMake、`DspProcessor`、`AudioEngine` 基础接口和 DSP 测试骨架。
-2.  阶段 2：跑通本地音频导入、多轨加载、播放状态、Seek、Loop、主音量底层接口。
-3.  阶段 3：实现多轨线性混音、主输出限幅、轨道音量、Pan 等底层处理。
-4.  阶段 4：手写波形降采样、VU 电平、简易频谱数据；实现 JSON 工程保存/加载。
-5.  阶段 5：完成 WAV 导出验收、DSP 单元测试补齐和底层架构检查清单。
+1. 阶段 1：搭建 CMake、`DspProcessor`、`AudioEngine` 基础接口和 DSP 测试骨架。
+2. 阶段 2：跑通本地音频导入、多轨加载、播放状态、Seek、Loop、主音量底层接口。
+3. 阶段 3：实现多轨线性混音、主输出限幅、轨道音量、Pan 等底层处理。
+4. 阶段 4：手写波形降采样、VU 电平、简易频谱数据；实现 JSON 工程保存/加载。
+5. 阶段 5：完成 WAV 导出验收、DSP 单元测试补齐和底层架构检查清单。
+
+
 
 ## 阶段 1：Model/DSP 基建与测试骨架
 
@@ -55,6 +57,8 @@
 - 对应提交：`2654de0`
 - 可放入报告的证据：`DspProcessor` 基础函数、`test_dsp_processor` 测试代码、CTest 输出、`run_tests.ps1` 执行记录。
 
+
+
 ## 阶段 1.1：与 B feat 本地合并交叉测试
 
 - 日期：2026-07-11
@@ -75,6 +79,8 @@
 - 对应提交：`9cac45c`、`7e49d75`
 - 可放入报告的证据：`validate_feature.ps1` 输出、合并后构建日志、`report/shared/CROSS_TEST_LOG.md`、主界面运行截图。
 
+
+
 ## 阶段 2：播放闭环底层接口
 
 - 日期：2026-07-11
@@ -92,5 +98,28 @@
   - 已运行 `cmake --build build --config Debug`，应用与测试构建通过。
   - 已运行 `ctest --test-dir build -C Debug --output-on-failure`，CTest 2/2 通过。
 - 成员 B 交叉测试结果：待成员 B 使用 UI 验证 Play/Pause/Stop/Seek/进度条是否与 Model 时钟一致。
-- 对应提交：待提交
+- 对应提交：`b244414`
 - 可放入报告的证据：`test_audio_engine.cpp`、CTest 2/2 输出、播放进度对接代码。
+
+
+
+## 阶段 3：混音与 DSP 闭环
+
+- 日期：2026-07-14
+- 使用的大模型：Cursor Grok
+- 采用模式：AI 主导代码生成，人工规划测试用例与构建验证。
+- 提示词摘要：仅完成阶段三 A 侧：多轨线性混音、主输出限幅、轨道音量/Pan、三段 EQ、Compressor、Bypass 底层；自主规划测试并写入报告。不改 B 侧 EQ/压缩 UI。
+- AI 输出内容：
+  - 扩展 `DspProcessor`：`dbToLinear`、三段 EQ、压缩器、`processTrackSample`、线性混音、`applyMasterChain` 限幅。
+  - 扩展 `AudioEngine` 轨参数与 `renderMixFrame` 离线混音（Mute/Solo 可听性在 Model 计算）。
+  - 最小对接：已有 Volume/Pan/Mute/Solo 经 ViewModel 同步到 Model（便于现有条带驱动底层）；EQ/Comp/Bypass 仅 Model API + 单测覆盖，留给 B 后续挂 UI。
+  - 扩展 `test_dsp_processor` 与 `test_audio_engine` 阶段三断言。
+- 人工修改内容：分支 `feature/A-model-dsp-sprint3-mixing`；EQ 为可测宽带增益代理。
+- 自测结果：
+  - `.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64"` → CTest **2/2 通过**。
+  - `cmake --build build --config Debug --target MixingStudio` 通过。
+  - `.\scripts\validate_feature.ps1` → **13/13 通过**。
+- 成员 B 交叉测试结果：待 B 后续实现 EQ/Comp/Bypass 控件后再做 UI 交叉；当前可用单测验收 A 底层。
+- 对应提交：待提交
+- 可放入报告的证据：`DspProcessor` 混音链、`AudioEngine::renderMixFrame`、扩展后的 CTest 输出、`tests/README.md` 阶段三测试计划。
+
