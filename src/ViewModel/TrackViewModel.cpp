@@ -76,6 +76,7 @@ void TrackViewModel::setBlockedBySolo(bool blockedBySolo)
     if (wasAudible != audible()) {
         emit audibleChanged();
         emit meterLevelChanged();
+        emit dspParamsChanged();
     }
 }
 
@@ -99,6 +100,7 @@ void TrackViewModel::setVolume(float volume)
 
     m_volume = clamped;
     emit volumeChanged();
+    emit dspParamsChanged();
 }
 
 void TrackViewModel::setPan(float pan)
@@ -110,6 +112,7 @@ void TrackViewModel::setPan(float pan)
 
     m_pan = clamped;
     emit panChanged();
+    emit dspParamsChanged();
 }
 
 void TrackViewModel::setMuted(bool muted)
@@ -121,6 +124,7 @@ void TrackViewModel::setMuted(bool muted)
     const bool wasAudible = audible();
     m_muted = muted;
     emit mutedChanged();
+    emit dspParamsChanged();
     if (wasAudible != audible()) {
         emit audibleChanged();
         emit meterLevelChanged();
@@ -135,4 +139,5 @@ void TrackViewModel::setSolo(bool solo)
 
     m_solo = solo;
     emit soloChanged();
+    emit dspParamsChanged();
 }

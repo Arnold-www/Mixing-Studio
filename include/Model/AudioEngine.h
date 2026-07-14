@@ -5,11 +5,24 @@
 #include <QString>
 #include <QStringList>
 #include <QTimer>
+#include <QVector>
+
+#include <DSP/DspProcessor.h>
 
 struct AudioTrack
 {
     QString sourcePath;
     QString displayName;
+    float volume = 0.8f;
+    float pan = 0.0f;
+    bool muted = false;
+    bool solo = false;
+    float eqLowDb = 0.0f;
+    float eqMidDb = 0.0f;
+    float eqHighDb = 0.0f;
+    float compThreshold = 0.7f;
+    float compRatio = 4.0f;
+    bool fxBypass = false;
 };
 
 class AudioEngine : public QObject
@@ -34,6 +47,10 @@ public:
     float masterVolume() const;
     int loopStartMs() const;
     int loopEndMs() const;
+    bool trackAudible(int index) const;
+
+    // Offline mix of one mono sample per track through volume/pan/EQ/comp/bypass + master limit.
+    StereoSample renderMixFrame(const QVector<float> &trackMonoSamples) const;
 
 public slots:
     void importTrack(const QString &path);
@@ -44,6 +61,13 @@ public slots:
     void seek(int positionMs);
     void setMasterVolume(float volume);
     void setLoopRange(int startMs, int endMs);
+    void setTrackVolume(int index, float volume);
+    void setTrackPan(int index, float pan);
+    void setTrackMuted(int index, bool muted);
+    void setTrackSolo(int index, bool solo);
+    void setTrackEq(int index, float lowDb, float midDb, float highDb);
+    void setTrackCompressor(int index, float threshold, float ratio);
+    void setTrackFxBypass(int index, bool bypass);
 
 signals:
     void tracksChanged();
@@ -52,15 +76,18 @@ signals:
     void durationChanged();
     void masterVolumeChanged();
     void loopRangeChanged();
+    void trackParamsChanged(int index);
     void statusMessageChanged(const QString &message);
 
 private slots:
     void advancePlayback();
 
 private:
+    bool isValidTrackIndex(int index) const;
     void setPlaying(bool playing);
     void setPositionMs(int positionMs);
     void setDurationMs(int durationMs);
+    bool anySolo() const;
 
     static constexpr int kPlaybackTickMs = 50;
     static constexpr int kPlaceholderDurationMs = 180000;

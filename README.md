@@ -4,7 +4,7 @@
 
 ## 当前进度
 
-**阶段一（Sprint 1）已完成：** 成员 A 使用 AI 实现 Model/DSP 基建与测试骨架；成员 B 在 `chai/feat` 实现 ViewModel/QML；双方已在本地 merge 并通过阶段一交叉测试。
+**阶段一完成；阶段二播放闭环已提交（`b244414`）；阶段三 A 侧混音/DSP 在 `feature/A-model-dsp-sprint3-mixing`（轨参/EQ/压缩/Bypass 底层 + 离线混音限幅 + CTest）。** B 侧 EQ/Comp UI 与真 PCM 输出仍待后续。
 
 ## 目录结构
 
@@ -12,7 +12,7 @@
 - `include/DSP/`、`src/DSP/` — DSP 算法（成员 A）
 - `include/ViewModel/`、`src/ViewModel/` — 状态与命令转发（成员 B）
 - `src/View/` — QML 界面（成员 B）
-- `tests/` — 单元测试（当前：`test_dsp_processor`）
+- `tests/` — 单元测试（`test_dsp_processor`、`test_audio_engine`）
 - `scripts/` — 构建与验证脚本
 - `docs/planning/` — 项目规划书
 - `report/` — 过程记录与报告证据
@@ -25,31 +25,28 @@
 
 ## 脚本分类
 
-详见 [`scripts/README.md`](scripts/README.md)：
+详见 `[scripts/README.md](scripts/README.md)`：
 
-| 类别 | 脚本 | 用途 |
-| :--- | :--- | :--- |
-| 环境配置 | `configure_qt_windows.ps1` | 首次 Windows Qt 配置与构建 |
-| 构建与测试 | `run_tests.ps1` / `run_tests.sh` | 一键构建 + CTest |
-| 质量互测 | `validate_feature.ps1` | MVVM 架构边界检查 |
+
+| 类别    | 脚本                               | 用途                  |
+| ----- | -------------------------------- | ------------------- |
+| 环境配置  | `configure_qt_windows.ps1`       | 首次 Windows Qt 配置与构建 |
+| 构建与测试 | `run_tests.ps1` / `run_tests.sh` | 一键构建 + CTest        |
+| 质量互测  | `validate_feature.ps1`           | MVVM 架构边界检查         |
+
+
+
 
 ## 本地运行（Windows）
 
-**前置条件：** Qt 6.5+、CMake 3.21+、Visual Studio 2022（MSVC）
+**前置条件：** Qt 6.5+、CMake 3.21+、Visual Studio 2022（MSVC）。首次环境搭建见 `[scripts/README.md](scripts/README.md)`。
 
 ```powershell
-# 首次
-.\scripts\configure_qt_windows.ps1
-
-# 日常：构建 App + 测试
 .\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64" -WithApp
-
-# 启动
-$env:PATH = "D:\Qt\6.5.3\msvc2019_64\bin;$env:PATH"
 .\build\bin\Debug\MixingStudio.exe
 ```
 
-可执行文件路径：`build/bin/Debug/MixingStudio.exe`
+
 
 ## 截止时间
 
