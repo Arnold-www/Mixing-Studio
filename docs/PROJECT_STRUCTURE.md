@@ -1,46 +1,48 @@
 # 项目结构说明
 
-本项目采用 **MVVM + App + Command** 分层，并按职责拆分源文件（单一职责）。
+本项目采用 **五层 MVVM**（`App / View / ViewModel / Model / Common`），View 为 QML，通过 **接口面向** 与 C++ 解耦。
+
+架构真源见：[架构关系与数据流向图](../1.%20架构关系与数据流向图%20(Mermaid%20格式).md)
 
 ## 源码目录
 
 ```text
 include/ / src/
+  Common/
+    ICommandBase.h       # 命令契约（ICommand 别名）
+    MixerTypes.h         # TrackDspParams / SoloPlan / 素材与工程辅助
   DSP/
-    DspProcessor.*     # 实时处理链（增益/Pan/EQ/压缩/混音/限幅）
-    DspAnalysis.*      # 分析（波形/VU/频谱/峰值/削波）
+    DspProcessor.* / DspAnalysis.*
   Model/
-    AudioTrack.h
-    AudioEngine.*      # 引擎门面 + 按关注点拆分的实现文件：
-      AudioEngine_Playback.cpp
-      AudioEngine_Tracks.cpp
-      AudioEngine_Analysis.cpp
-      AudioEngine_Persistence.cpp
-    AssetLibrary.* / ProjectStore.*
-  App/
-    MixerApp.*         # 用例门面 + Playback / Project / Tracks 拆分实现
-  Command/
-    ICommand.h
-    PlaybackCommands.* / ProjectCommands.* / TrackDspCommands.*
-    MixerCommands.h    # 伞头文件，聚合上述命令
+    AudioEngine.* / AudioTrack.h / AssetLibrary.* / ProjectStore.*
   ViewModel/
-    MixerViewModel.* + MixerViewModel_Sync.cpp
-    TrackViewModel.*
+    IMixerViewModel.h / ITrackViewModel.h   # QML 契约（Q_PROPERTY + slots/signals）
+    RealMixerViewModel.*                    # 实现；聚合 AudioEngine
+    TrackViewModel.*                        # 实现 ITrackViewModel
+  Command/
+    Playback / Project / TrackDsp 命令（操作 AudioEngine）
+  App/
+    MixingStudioApp.*    # 仅装配：创建 Model/RealVM，以 IMixerViewModel* 注入 QML
   View/
-    Main.qml           # 布局组装
-    TransportBar.qml / WaveformPanel.qml / SpectrumPanel.qml
-    LibraryPanel.qml / TrackMixerList.qml
+    Main.qml 及子组件    # 只绑定 mixerViewModel 契约属性/槽
 ```
 
 ## 分层约束
 
-1. QML 只能绑定 ViewModel，不得直接访问 Command / App / Model / DSP。
-2. Command 调用 App；App 调用 Model；Model/DSP 不依赖上层。
-3. 对外 API 仍以门面类为准（`AudioEngine`、`MixerApp`、`MixerViewModel`），拆分的是实现文件。
+1. QML 只通过上下文中的 `mixerViewModel`（`IMixerViewModel*`）交互，不得引用 `RealMixerViewModel` / Model / DSP / Command / App。
+2. App 创建 `RealMixerViewModel`，但 **`setContextProperty` 必须使用接口指针**。
+3. RealVM **直接聚合** `AudioEngine`（Model），不再经旧 `MixerApp` 用例门面。
+4. 命令实现 `ICommandBase::execute()`，可由 ViewModel 槽触发（允许 Qt 槽）。
+5. Model/DSP 不依赖 View / ViewModel / App / Command。
 
 ## 数据流
 
 ```text
-QML 组件 → ViewModel 槽 → Command::execute → MixerApp → AudioEngine → DSP
-                                              ↑ Signal 回传
+QML → IMixerViewModel（契约）→ RealMixerViewModel → Command/直接调用 → AudioEngine → DSP
+         ↑ App 注入接口指针
 ```
+
+## 后期分工
+
+- **成员 A**：架构优化与实现（Common / 接口契约 / RealVM / Model / App 装配）。
+- **成员 B**：测试与审核（CTest、validate_feature、合入验收），不主责改架构。

@@ -2,6 +2,7 @@
 <#
 .SYNOPSIS
     One-click configure, build, and run CTest targets.
+    Qt is auto-detected; -QtPath is optional.
 #>
 [CmdletBinding()]
 param(
@@ -17,23 +18,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
-function Resolve-QtPath {
-    param([string]$PreferredPath)
-    $candidates = @()
-    if ($PreferredPath) { $candidates += $PreferredPath }
-    if ($env:CMAKE_PREFIX_PATH) { $candidates += ($env:CMAKE_PREFIX_PATH -split ';' | Where-Object { $_ }) }
-    $candidates += @(
-        "D:\Qt\6.5.3\msvc2019_64",
-        "D:\Qt\6.5.3\msvc2022_64",
-        "C:\Qt\6.5.3\msvc2019_64"
-    )
-    foreach ($candidate in $candidates) {
-        if (Test-Path (Join-Path $candidate "bin\Qt6Core.dll")) {
-            return (Resolve-Path $candidate).Path
-        }
-    }
-    throw "Qt 6 not found. Pass -QtPath or set QT_PATH."
-}
+. (Join-Path $PSScriptRoot "Resolve-QtPath.ps1")
 
 function Invoke-Step {
     param([string]$Title, [scriptblock]$Action)
@@ -62,6 +47,8 @@ if ($WithApp) {
         cmake --build $BuildDir --config $Config --target test_audio_engine
         cmake --build $BuildDir --config $Config --target test_project_store
         cmake --build $BuildDir --config $Config --target test_asset_library
+        cmake --build $BuildDir --config $Config --target test_common_types
+        cmake --build $BuildDir --config $Config --target test_commands
     }
 }
 

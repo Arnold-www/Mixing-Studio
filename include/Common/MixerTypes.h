@@ -1,10 +1,39 @@
-#include <App/MixerApp.h>
+#pragma once
 
-#include <Model/AudioEngine.h>
+#include <QString>
+#include <QStringList>
+#include <QVector>
 
 #include <algorithm>
 
-QStringList MixerApp::defaultAssetCatalog() const
+struct TrackDspParams
+{
+    float volume = 0.8f;
+    float pan = 0.0f;
+    bool muted = false;
+    bool solo = false;
+};
+
+struct SoloPlan
+{
+    bool anySolo = false;
+    QVector<bool> blockedBySolo;
+};
+
+inline SoloPlan planSolo(const QVector<bool> &soloFlags)
+{
+    SoloPlan plan;
+    plan.anySolo = std::any_of(soloFlags.cbegin(), soloFlags.cend(), [](bool solo) {
+        return solo;
+    });
+    plan.blockedBySolo.reserve(soloFlags.size());
+    for (bool solo : soloFlags) {
+        plan.blockedBySolo.append(plan.anySolo && !solo);
+    }
+    return plan;
+}
+
+inline QStringList defaultAssetCatalog()
 {
     return {
         QStringLiteral("Lead Vocal.wav"),
@@ -20,7 +49,7 @@ QStringList MixerApp::defaultAssetCatalog() const
     };
 }
 
-QStringList MixerApp::defaultRecentProjects() const
+inline QStringList defaultRecentProjects()
 {
     return {
         QStringLiteral("Studio Demo Session"),
@@ -29,7 +58,7 @@ QStringList MixerApp::defaultRecentProjects() const
     };
 }
 
-QStringList MixerApp::filterAssets(const QStringList &catalog, const QString &query) const
+inline QStringList filterAssets(const QStringList &catalog, const QString &query)
 {
     if (query.trimmed().isEmpty()) {
         return catalog;
@@ -44,34 +73,7 @@ QStringList MixerApp::filterAssets(const QStringList &catalog, const QString &qu
     return filtered;
 }
 
-QString MixerApp::importMockTrack(int existingTrackCount)
-{
-    const QString name = QStringLiteral("Track %1").arg(existingTrackCount + 1);
-    if (m_engine) {
-        m_engine->importTrack(name);
-    }
-    return name;
-}
-
-bool MixerApp::importAssetByName(const QString &name, QString *statusOut)
-{
-    if (name.trimmed().isEmpty()) {
-        if (statusOut) {
-            *statusOut = QStringLiteral("Select an asset before importing.");
-        }
-        return false;
-    }
-
-    if (m_engine) {
-        m_engine->importTrack(name);
-    }
-    if (statusOut) {
-        *statusOut = QStringLiteral("Imported asset: %1").arg(name);
-    }
-    return true;
-}
-
-QStringList MixerApp::saveMockSnapshot(int trackCount, QStringList recent, QString *statusOut)
+inline QStringList saveMockSnapshot(int trackCount, QStringList recent, QString *statusOut)
 {
     if (trackCount <= 0) {
         if (statusOut) {
@@ -93,7 +95,7 @@ QStringList MixerApp::saveMockSnapshot(int trackCount, QStringList recent, QStri
     return recent;
 }
 
-QString MixerApp::restoreRecentProject(const QString &name, QString *statusOut)
+inline QString restoreRecentProjectStatus(const QString &name, QString *statusOut)
 {
     if (name.trimmed().isEmpty()) {
         if (statusOut) {

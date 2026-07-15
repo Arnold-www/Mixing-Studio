@@ -1,19 +1,20 @@
 #pragma once
 
-#include <Command/ICommand.h>
-
-#include <App/MixerApp.h>
+#include <Common/ICommandBase.h>
+#include <Common/MixerTypes.h>
 
 #include <QVector>
+
+class AudioEngine;
 
 class ApplyTrackDspCommand final : public ICommand
 {
 public:
-    ApplyTrackDspCommand(MixerApp *app, int index, TrackDspParams params);
+    ApplyTrackDspCommand(AudioEngine *engine, int index, TrackDspParams params);
     void execute() override;
 
 private:
-    MixerApp *m_app = nullptr;
+    AudioEngine *m_engine = nullptr;
     int m_index = -1;
     TrackDspParams m_params;
 };
@@ -21,10 +22,10 @@ private:
 class ApplyAllTrackDspCommand final : public ICommand
 {
 public:
-    ApplyAllTrackDspCommand(MixerApp *app, QVector<TrackDspParams> params);
+    ApplyAllTrackDspCommand(AudioEngine *engine, QVector<TrackDspParams> params);
     void execute() override;
 
 private:
-    MixerApp *m_app = nullptr;
+    AudioEngine *m_engine = nullptr;
     QVector<TrackDspParams> m_params;
 };

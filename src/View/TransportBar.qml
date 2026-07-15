@@ -12,7 +12,7 @@ Rectangle {
     GridLayout {
         anchors.fill: parent
         anchors.margins: 10
-        columns: 8
+        columns: 10
         columnSpacing: 10
         rowSpacing: 8
 
@@ -70,14 +70,34 @@ Rectangle {
             to: 1.0
             value: mixerViewModel.masterVolume
             onMoved: mixerViewModel.masterVolume = value
-            Layout.preferredWidth: 180
+            Layout.preferredWidth: 140
+        }
+
+        Rectangle {
+            Layout.preferredWidth: 70
+            Layout.preferredHeight: 18
+            radius: 3
+            color: "#e5eaf1"
+
+            Rectangle {
+                width: Math.max(2, parent.width * mixerViewModel.vuLevel)
+                height: parent.height
+                radius: 3
+                color: mixerViewModel.clippingDetected ? "#b34d4d" : "#2f7d6d"
+            }
+        }
+
+        Label {
+            text: mixerViewModel.clippingDetected ? "CLIP" : "VU"
+            color: mixerViewModel.clippingDetected ? "#b34d4d" : "#6b7280"
+            Layout.preferredWidth: 36
         }
 
         Label {
             text: mixerViewModel.statusMessage
             color: "#4b5563"
             elide: Text.ElideRight
-            Layout.columnSpan: 8
+            Layout.columnSpan: 10
             Layout.fillWidth: true
         }
     }

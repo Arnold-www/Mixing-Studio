@@ -22,23 +22,24 @@ cmake --build build-qt
 ### Windows（成员 A）
 
 - 操作系统：Windows 10.0.26200
-- Qt 版本：6.5.3 (msvc2019_64)，通过 `aqtinstall` 安装于 `D:\Qt\6.5.3\msvc2019_64`
+- **当前 Qt：** 6.8.3 (msvc2022_64)，安装于 `D:\Qt\6.8.3\msvc2022_64`
 - CMake 版本：3.31.3
 - 编译器：MSVC 17.14 (Visual Studio 2022)
-- 当前分支：`feature/A-model-dsp-sprint2-playback`（基于阶段 1 + `chai/feat`）
 - 构建命令：
 
 ```powershell
 .\scripts\configure_qt_windows.ps1
 # 或
-cmake -S . -B build -DCMAKE_PREFIX_PATH="D:\Qt\6.5.3\msvc2019_64"
+cmake -S . -B build -DCMAKE_PREFIX_PATH="D:\Qt\6.8.3\msvc2022_64"
 cmake --build build --config Debug
 ```
+
+> 说明：2026-07 中期阶段曾使用 Qt 6.5.3 (msvc2019_64)；下表历史记录保留当时路径，不作改写。
 
 ## 一键测试
 
 ```powershell
-.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64" -WithApp
+.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.8.3\msvc2022_64" -WithApp
 .\scripts\validate_feature.ps1 -BaseBranch main
 ```
 
@@ -70,22 +71,26 @@ WITH_APP=1 ./scripts/run_tests.sh
 | 2026-07-14 | 单元测试 | A 侧阶段 4 分析/JSON/SQLite | `.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64"` | 通过，4/4 | 无 | 待提交 |
 | 2026-07-14 | 集成构建 | A 侧阶段 4 MixingStudio + Sql | `cmake --build build --config Debug --target MixingStudio` | 通过 | 无 | 待提交 |
 | 2026-07-14 | 架构检查 | 阶段 4 MVVM 边界 | `.\scripts\validate_feature.ps1` | 通过，13/13 | 无 | 待提交 |
+| 2026-07-16 | 单元测试 | 阶段 4 RealVM 改绑 | `.\scripts\run_tests.ps1 -WithApp` | 通过，6/6 | 无 | 待提交 |
+| 2026-07-16 | 架构检查 | 阶段 4 改绑后边界 | `.\scripts\validate_feature.ps1` | 通过，27/27 | 无 | 待提交 |
 
-## 最近一次 CTest 输出（A 侧阶段 4）
+## 最近一次 CTest 输出（阶段 4 改绑）
 
 ```text
-1/4 Test #1: dsp_processor ....................   Passed
-2/4 Test #2: audio_engine .....................   Passed
-3/4 Test #3: project_store ....................   Passed
-4/4 Test #4: asset_library ....................   Passed
-100% tests passed, 0 tests failed out of 4
+1/6 Test #1: dsp_processor ....................   Passed
+2/6 Test #2: audio_engine .....................   Passed
+3/6 Test #3: project_store ....................   Passed
+4/6 Test #4: asset_library ....................   Passed
+5/6 Test #5: common_types .....................   Passed
+6/6 Test #6: commands .........................   Passed
+100% tests passed, 0 tests failed out of 6
 ```
 
 ## 报告截图清单
 
 - [ ] macOS 构建成功截图（B）
 - [ ] Windows 构建成功截图（A）
-- [ ] `validate_feature.ps1` 13/13 通过截图
+- [ ] `validate_feature.ps1` 通过截图
 - [ ] `run_tests.ps1` CTest 通过截图
 - [ ] 合并后 `MixingStudio.exe` 运行截图
 - [ ] 交叉测试记录截图

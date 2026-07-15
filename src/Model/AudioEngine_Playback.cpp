@@ -45,6 +45,8 @@ void AudioEngine::seek(int positionMs)
     }
 
     setPositionMs(clamped);
+    rebuildPlaceholderBuffer();
+    refreshAnalysis();
     emit statusMessageChanged(QStringLiteral("Seek to %1 ms.").arg(clamped));
 }
 
@@ -57,6 +59,8 @@ void AudioEngine::setMasterVolume(float volume)
 
     m_masterVolume = clamped;
     emit masterVolumeChanged();
+    rebuildPlaceholderBuffer();
+    refreshAnalysis();
     emit statusMessageChanged(QStringLiteral("Master volume: %1").arg(m_masterVolume, 0, 'f', 2));
 }
 

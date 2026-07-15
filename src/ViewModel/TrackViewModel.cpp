@@ -5,7 +5,7 @@
 #include <utility>
 
 TrackViewModel::TrackViewModel(QString name, QObject *parent)
-    : QObject(parent)
+    : ITrackViewModel(parent)
     , m_name(std::move(name))
 {
 }

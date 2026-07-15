@@ -1,21 +1,22 @@
 #pragma once
 
-#include <Command/ICommand.h>
-
-#include <App/MixerApp.h>
+#include <Common/ICommandBase.h>
+#include <Common/MixerTypes.h>
 
 #include <QString>
 #include <QStringList>
 
+class AudioEngine;
+
 class ImportMockTrackCommand final : public ICommand
 {
 public:
-    ImportMockTrackCommand(MixerApp *app, int existingTrackCount);
+    ImportMockTrackCommand(AudioEngine *engine, int existingTrackCount);
     void execute() override;
     QString trackName() const;
 
 private:
-    MixerApp *m_app = nullptr;
+    AudioEngine *m_engine = nullptr;
     int m_existingTrackCount = 0;
     QString m_trackName;
 };
@@ -23,43 +24,46 @@ private:
 class ImportAssetCommand final : public ICommand
 {
 public:
-    ImportAssetCommand(MixerApp *app, QString name);
+    ImportAssetCommand(AudioEngine *engine, QString name);
     void execute() override;
     bool ok() const;
     QString status() const;
     QString assetName() const;
 
 private:
-    MixerApp *m_app = nullptr;
+    AudioEngine *m_engine = nullptr;
     QString m_name;
     bool m_ok = false;
     QString m_status;
 };
 
-class SaveMockProjectCommand final : public ICommand
+class SaveProjectCommand final : public ICommand
 {
 public:
-    SaveMockProjectCommand(MixerApp *app, int trackCount, QStringList recent);
+    SaveProjectCommand(AudioEngine *engine, QString path);
     void execute() override;
-    QStringList recentProjects() const;
+    bool ok() const;
     QString status() const;
+    QString path() const;
 
 private:
-    MixerApp *m_app = nullptr;
-    int m_trackCount = 0;
-    QStringList m_recent;
+    AudioEngine *m_engine = nullptr;
+    QString m_path;
+    bool m_ok = false;
     QString m_status;
 };
 
-class RestoreRecentProjectCommand final : public ICommand
+class LoadProjectCommand final : public ICommand
 {
 public:
-    RestoreRecentProjectCommand(MixerApp *app, QString name);
+    LoadProjectCommand(AudioEngine *engine, QString path);
     void execute() override;
+    bool ok() const;
     QString status() const;
 
 private:
-    MixerApp *m_app = nullptr;
-    QString m_name;
+    AudioEngine *m_engine = nullptr;
+    QString m_path;
+    bool m_ok = false;
     QString m_status;
 };

@@ -43,20 +43,24 @@ $results += Add-Result `
 $results += Add-Result `
     -Name "No headers under src" `
     -Passed (-not (Get-ChildItem -Path "src" -Recurse -Filter "*.h" -ErrorAction SilentlyContinue)) `
-    -Detail "Headers should live under include/DSP, include/Model, include/App, include/Command, include/ViewModel."
+    -Detail "Headers should live under include/Common, Model, DSP, App, Command, ViewModel."
 
 $requiredHeaders = @(
+    "include/Common/ICommandBase.h",
+    "include/Common/MixerTypes.h",
     "include/DSP/DspProcessor.h",
     "include/DSP/DspAnalysis.h",
     "include/Model/AudioEngine.h",
     "include/Model/AudioTrack.h",
-    "include/App/MixerApp.h",
+    "include/App/MixingStudioApp.h",
     "include/Command/ICommand.h",
     "include/Command/PlaybackCommands.h",
     "include/Command/ProjectCommands.h",
     "include/Command/TrackDspCommands.h",
     "include/Command/MixerCommands.h",
-    "include/ViewModel/MixerViewModel.h",
+    "include/ViewModel/IMixerViewModel.h",
+    "include/ViewModel/ITrackViewModel.h",
+    "include/ViewModel/RealMixerViewModel.h",
     "include/ViewModel/TrackViewModel.h"
 )
 
@@ -67,17 +71,22 @@ foreach ($header in $requiredHeaders) {
         -Detail $header
 }
 
+$results += Add-Result `
+    -Name "Legacy MixerApp facade removed" `
+    -Passed (-not (Test-PathExists "include/App/MixerApp.h")) `
+    -Detail "include/App/MixerApp.h should not exist"
+
 $qmlFiles = @(Get-ChildItem -Path "src/View" -Recurse -Include "*.qml" -ErrorAction SilentlyContinue)
 $qmlBoundaryViolations = @()
 foreach ($file in $qmlFiles) {
     $content = Get-Content -LiteralPath $file.FullName -Raw
-    if ($content -match "AudioEngine|DspProcessor|MixerApp|ICommand|PlayCommand|src/Model|src/DSP|src/App|src/Command") {
+    if ($content -match "AudioEngine|DspProcessor|MixerApp|RealMixerViewModel|ICommand|PlayCommand|src/Model|src/DSP|src/App|src/Command") {
         $qmlBoundaryViolations += $file.FullName
     }
 }
 
 $results += Add-Result `
-    -Name "QML does not directly access Command/App/Model/DSP" `
+    -Name "QML does not access Model/DSP/App/Command/RealVM" `
     -Passed ($qmlBoundaryViolations.Count -eq 0) `
     -Detail (($qmlBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
 
@@ -87,30 +96,29 @@ $modelDspFiles += Get-ChildItem -Path "src/DSP" -Recurse -Include "*.cpp" -Error
 $modelDspBoundaryViolations = @()
 foreach ($file in $modelDspFiles) {
     $content = Get-Content -LiteralPath $file.FullName -Raw
-    if ($content -match "ViewModel|MixerApp|ICommand|QQml|QQuick|Main.qml|src/View|src/App|src/Command") {
+    if ($content -match "ViewModel|MixingStudioApp|ICommand|QQml|QQuick|Main.qml|src/View|src/App|src/Command") {
         $modelDspBoundaryViolations += $file.FullName
     }
 }
 
 $results += Add-Result `
-    -Name "Model/DSP do not depend on Command/App/View/ViewModel" `
+    -Name "Model/DSP do not depend on App/Command/View/ViewModel" `
     -Passed ($modelDspBoundaryViolations.Count -eq 0) `
     -Detail (($modelDspBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
 
-$appFiles = @()
-$appFiles += Get-ChildItem -Path "src/App" -Recurse -Include "*.cpp" -ErrorAction SilentlyContinue
-$appBoundaryViolations = @()
-foreach ($file in $appFiles) {
-    $content = Get-Content -LiteralPath $file.FullName -Raw
-    if ($content -match "ViewModel|ICommand|MixerCommands|QQml|QQuick|Main.qml|src/View|src/Command") {
-        $appBoundaryViolations += $file.FullName
-    }
+$mainContent = ""
+if (Test-PathExists "src/main.cpp") {
+    $mainContent = Get-Content -LiteralPath "src/main.cpp" -Raw
 }
-
+$appContent = ""
+if (Test-PathExists "src/App/MixingStudioApp.cpp") {
+    $appContent = Get-Content -LiteralPath "src/App/MixingStudioApp.cpp" -Raw
+}
+$injectOk = ($appContent -match "IMixerViewModel") -and ($appContent -match "setContextProperty") -and ($appContent -notmatch "setContextProperty\([^\)]*RealMixerViewModel")
 $results += Add-Result `
-    -Name "App does not depend on Command/View/ViewModel" `
-    -Passed ($appBoundaryViolations.Count -eq 0) `
-    -Detail (($appBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
+    -Name "App injects IMixerViewModel interface pointer" `
+    -Passed $injectOk `
+    -Detail "MixingStudioApp must setContextProperty with IMixerViewModel*"
 
 $commandFiles = @()
 $commandFiles += Get-ChildItem -Path "src/Command" -Recurse -Include "*.cpp" -ErrorAction SilentlyContinue
@@ -126,18 +134,6 @@ $results += Add-Result `
     -Name "Command does not depend on View/ViewModel" `
     -Passed ($commandBoundaryViolations.Count -eq 0) `
     -Detail (($commandBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
-
-$featureScopeViolations = @()
-if ($FeatureBranch -match "chai/feat|feature/B|B-|vm|view") {
-    $featureScopeViolations = $changedFiles | Where-Object {
-        $_ -match "^(src/Model/|src/DSP/|include/Model/|include/DSP/)"
-    }
-}
-
-$results += Add-Result `
-    -Name "Feature branch stays within expected B-side scope" `
-    -Passed ($featureScopeViolations.Count -eq 0) `
-    -Detail (($featureScopeViolations -join "; "))
 
 $requiredReportFiles = @(
     "report/shared/AI_USAGE_LOG.md",

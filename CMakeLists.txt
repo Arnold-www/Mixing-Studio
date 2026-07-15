@@ -31,12 +31,14 @@ set(MIXING_STUDIO_MODEL_SOURCES
     src/Model/AssetLibrary.cpp
 )
 
+set(MIXING_STUDIO_COMMON_SOURCES
+    include/Common/ICommandBase.h
+    include/Common/MixerTypes.h
+)
+
 set(MIXING_STUDIO_APP_SOURCES
-    include/App/MixerApp.h
-    src/App/MixerApp.cpp
-    src/App/MixerApp_Playback.cpp
-    src/App/MixerApp_Project.cpp
-    src/App/MixerApp_Tracks.cpp
+    include/App/MixingStudioApp.h
+    src/App/MixingStudioApp.cpp
 )
 
 set(MIXING_STUDIO_COMMAND_SOURCES
@@ -51,15 +53,17 @@ set(MIXING_STUDIO_COMMAND_SOURCES
 )
 
 set(MIXING_STUDIO_VIEWMODEL_SOURCES
+    include/ViewModel/ITrackViewModel.h
+    include/ViewModel/IMixerViewModel.h
     include/ViewModel/TrackViewModel.h
     src/ViewModel/TrackViewModel.cpp
-    include/ViewModel/MixerViewModel.h
-    src/ViewModel/MixerViewModel.cpp
-    src/ViewModel/MixerViewModel_Sync.cpp
+    include/ViewModel/RealMixerViewModel.h
+    src/ViewModel/RealMixerViewModel.cpp
 )
 
 qt_add_executable(MixingStudio
     src/main.cpp
+    ${MIXING_STUDIO_COMMON_SOURCES}
     ${MIXING_STUDIO_DSP_SOURCES}
     ${MIXING_STUDIO_MODEL_SOURCES}
     ${MIXING_STUDIO_APP_SOURCES}
@@ -185,36 +189,29 @@ set_tests_properties(asset_library PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
 )
 
-add_executable(test_mixer_app
-    tests/test_mixer_app.cpp
-    ${MIXING_STUDIO_APP_SOURCES}
-    ${MIXING_STUDIO_MODEL_SOURCES}
-    ${MIXING_STUDIO_DSP_SOURCES}
+add_executable(test_common_types
+    tests/test_common_types.cpp
 )
 
-set_target_properties(test_mixer_app PROPERTIES AUTOMOC ON)
-
-target_include_directories(test_mixer_app
+target_include_directories(test_common_types
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(test_mixer_app
+target_link_libraries(test_common_types
     PRIVATE
         Qt6::Core
-        Qt6::Sql
 )
 
-add_test(NAME mixer_app COMMAND test_mixer_app)
+add_test(NAME common_types COMMAND test_common_types)
 
-set_tests_properties(mixer_app PROPERTIES
+set_tests_properties(common_types PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
 )
 
 add_executable(test_commands
     tests/test_commands.cpp
     ${MIXING_STUDIO_COMMAND_SOURCES}
-    ${MIXING_STUDIO_APP_SOURCES}
     ${MIXING_STUDIO_MODEL_SOURCES}
     ${MIXING_STUDIO_DSP_SOURCES}
 )

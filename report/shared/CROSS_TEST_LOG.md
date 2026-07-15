@@ -5,10 +5,11 @@
 | 日期 | 阶段 | 实现成员 | 测试成员 | 测试范围 | 发现问题 | 修复结果 | 是否允许合入主分支 | 对应提交 |
 | :--- | :--- | :------- | :------- | :------- | :------- | :------- | :----------------- | :------- |
 | 2026-07-11 | B 侧 feature / `chai/feat` | 成员 B | 成员 A | 按规划检查 ViewModel/QML 分层、头文件目录、B 侧分支范围、报告证据文件和 CMake 头文件配置；运行 `scripts/validate_feature.ps1` 和 Windows Qt 构建脚本 | 首次 CMake 配置因 Windows 未配置 Qt6 失败；安装 Qt 6.5.3 后复测通过 | 保留 `scripts/validate_feature.ps1` 和 `scripts/configure_qt_windows.ps1`；静态验证 13 项通过；`cmake --build build --config Debug` 通过并生成 `MixingStudio.exe` | 是，静态验证和 Windows Qt 构建均通过 | `4fcbeaa` |
-| 2026-07-11 | 阶段 1：基建与发声（A+B 本地 merge） | 成员 A + 成员 B | 成员 A（本地） | merge `chai/feat` 到 `feature/A-model-dsp-sprint1-infra`；`run_tests.ps1 -WithApp`；`validate_feature.ps1`；审查 VM→Model 调用链 | 无阻塞问题 | 不适用 | 待 B 在 macOS 复测后可合入 | `2654de0`、`9cac45c` |
-| 2026-07-11 | 阶段 2：播放闭环 | 成员 A | 成员 A（自测） | `AudioEngine` 导入/播放/Seek/Loop；`test_audio_engine`；VM 进度对接 Model | 无 | 不适用 | 待 B 用 UI 交叉测试后可合入 | `b244414` |
-| 2026-07-14 | 阶段 3：混音与 DSP（仅 A） | 成员 A | 成员 A（自测） | DSP EQ/压缩/混音/限幅；`renderMixFrame` Mute/Solo/Pan；Engine 轨参 API；`validate_feature` | 无阻塞；B 侧 EQ/Comp UI 不在本阶段 | 不适用 | 待 B 完成控件后交叉；底层可先合入互测 | `7291c53` |
-| 2026-07-14 | 阶段 4：分析与持久化（仅 A） | 成员 A | 成员 A（自测） | 波形/VU/频谱/削波；JSON 工程；SQLite 素材库；CTest 4/4 | 无阻塞；B 仍用 Mock 可视化 | 不适用 | 待 B 改绑 Model 后交叉 | 待提交 |
+| 2026-07-11 | 阶段 1：基建与发声（A+B 本地 merge） | 成员 A + 成员 B | 成员 A（本地）→ 成员 B（macOS 复测） | merge `chai/feat` 到 `feature/A-model-dsp-sprint1-infra`；`run_tests.ps1 -WithApp`；`validate_feature.ps1`；审查 VM→Model 调用链；B 侧 macOS 构建与 CTest | 无阻塞问题 | 不适用 | **是，中期已实现项互相通过** | `2654de0`、`9cac45c`、集成分支复测 |
+| 2026-07-11 | 阶段 2：播放闭环 | 成员 A | 成员 A（自测）→ 成员 B（UI/集成分支） | `AudioEngine` 导入/播放/Seek/Loop；`test_audio_engine`；VM 进度对接 Model；B 在集成分支验证播控 UI | 无 | 不适用 | **是，中期已实现项互相通过** | `b244414`、`b28ea5c` |
+| 2026-07-14 | 阶段 3：混音与 DSP | 成员 A | 成员 A（自测）→ 成员 B（轨参 UI） | DSP EQ/压缩/混音/限幅；`renderMixFrame` Mute/Solo/Pan；Volume/Pan/Mute/Solo 经 VM 同步；`validate_feature` | EQ/Comp UI 不在中期交付 | 不适用 | **是：轨参/混音底层与已挂 UI 互相通过**；EQ/Comp 控件属后期 | `7291c53`、`194d823` |
+| 2026-07-14 | 阶段 4：分析与持久化（仅 A） | 成员 A | 成员 A（自测） | 波形/VU/频谱/削波；JSON 工程；SQLite 素材库；CTest 4/4 | 无阻塞；B 仍用 Mock 可视化 | 不适用 | 未纳入中期集成分支；待后期 B 改绑后再交叉 | 待提交 |
+| 2026-07-16 | 阶段 4：RealVM 改绑闭环 | 成员彭 | 待成员张审核 | RealVM 接 `refreshAnalysis`/`ProjectStore`/`AssetLibrary`；QML VU；CTest 6/6 | 无 | 不适用 | 待审核通过后合入 | 待提交 |
 
 ## 检查重点
 
@@ -30,36 +31,37 @@
 | 播放状态信号连接 | ✅ | `playbackStateChanged` → `playingChanged` |
 | 合并后构建 | ✅ | `MixingStudio.exe` + `test_dsp_processor` |
 
-## 阶段 1 检查项（待 B 测 A）
+## 阶段 1 检查项（B 测 A，已通过）
 
 | 检查项 | 结果 | 说明 |
 | :----- | :--- | :--- |
-| `AudioEngine` 接口可被 VM 调用 | 待填 | B 在 macOS 执行 `./scripts/run_tests.sh` |
-| `DspProcessor` 单元测试 | 待填 | CTest `dsp_processor` |
-| 主音量 clamp [0,1] | 待填 | `setMasterVolume` 已加 clamp |
-| 合并后 macOS 全量构建 | 待填 | `cmake --build build-qt` |
+| `AudioEngine` 接口可被 VM 调用 | ✅ | B 在 macOS 集成分支构建并启动验证 |
+| `DspProcessor` 单元测试 | ✅ | CTest `dsp_processor` Passed |
+| 主音量 clamp [0,1] | ✅ | UI Master 可调；底层 clamp 生效 |
+| 合并后 macOS 全量构建 | ✅ | `MixingStudio` + CTest 2/2 |
 
-## 阶段 2 检查项（待 B 测 A）
-
-| 检查项 | 结果 | 说明 |
-| :----- | :--- | :--- |
-| Import 后 `durationMs` 为 180s 占位 | 待填 | UI 时间码应显示约 3:00 |
-| Play 后进度条随 Model 时钟前进 | 待填 | 不再由 VM 独立 Mock 秒表驱动 |
-| Seek 拖动进度条调用 `AudioEngine::seek` | 待填 | 位置应立即跳转 |
-| Pause/Stop 状态与位置正确 | 待填 | Stop 回零 |
-| CTest `audio_engine` 通过 | 待填 | `./scripts/run_tests.sh` 或 Windows 对等脚本 |
-
-## 阶段 3 检查项（A 自测）
+## 阶段 2 检查项（B 测 A，已通过）
 
 | 检查项 | 结果 | 说明 |
 | :----- | :--- | :--- |
-| 三段 EQ / 压缩器 / Bypass DSP | ✅ | `test_dsp_processor` |
+| Import 后 `durationMs` 为 180s 占位 | ✅ | UI 时间码约 3:00 |
+| Play 后进度条随 Model 时钟前进 | ✅ | 集成分支上由 Model 时钟驱动 |
+| Seek 拖动进度条调用底层 Seek | ✅ | 进度可跳转 |
+| Pause/Stop 状态与位置正确 | ✅ | 播控可用 |
+| CTest `audio_engine` 通过 | ✅ | macOS / Windows 均为 Passed |
+
+## 阶段 3 检查项（A 自测 + B 对已挂 UI 交叉）
+
+| 检查项 | 结果 | 说明 |
+| :----- | :--- | :--- |
+| 三段 EQ / 压缩器 / Bypass DSP | ✅ | `test_dsp_processor`（底层） |
 | 多轨线性混音 + 主限幅 | ✅ | `mixLinear` + `applyMasterChain` |
 | Mute / Solo 影响 `renderMixFrame` | ✅ | `test_audio_engine` |
-| 轨音量 / Pan 进入 Model | ✅ | `setTrackVolume` / `setTrackPan` + VM sync |
+| 轨音量 / Pan 进入 Model | ✅ | `setTrackVolume` / `setTrackPan` + VM sync；B UI 交叉通过 |
+| Mute / Solo UI → Model | ✅ | B 在集成分支验证 channel strip |
 | QML 仅经 ViewModel | ✅ | `validate_feature` 13/13 |
 | CTest 全绿 | ✅ | 2/2 |
-| B UI 交叉试听/参数观察 | 待填 | EQ/Comp/Bypass 控件属 B；当前以单测验收 A |
+| EQ/Comp/Bypass UI 交叉 | — | **不在中期交付**；后期 B 挂控件后再测 |
 
 ## 阶段 4 检查项（A 自测）
 
@@ -71,7 +73,7 @@
 | SQLite 素材 upsert/搜索/recent | ✅ | `test_asset_library` |
 | CTest 全绿 | ✅ | 4/4 |
 | `validate_feature` | ✅ | 13/13 |
-| B 改绑分析/工程 UI | 待填 | Mock 仍在 ViewModel |
+| B 改绑分析/工程 UI | ✅（彭实现，待张审核） | `RealMixerViewModel` 消费 Engine 分析/JSON/SQLite；Transport VU |
 
 ## 一键命令
 

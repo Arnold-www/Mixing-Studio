@@ -1,52 +1,37 @@
 #pragma once
 
-#include <QObject>
+#include <ViewModel/ITrackViewModel.h>
+
 #include <QString>
 
-class TrackViewModel : public QObject
+class TrackViewModel : public ITrackViewModel
 {
     Q_OBJECT
-    Q_PROPERTY(QString name READ name CONSTANT)
-    Q_PROPERTY(float volume READ volume WRITE setVolume NOTIFY volumeChanged)
-    Q_PROPERTY(float pan READ pan WRITE setPan NOTIFY panChanged)
-    Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY mutedChanged)
-    Q_PROPERTY(bool solo READ solo WRITE setSolo NOTIFY soloChanged)
-    Q_PROPERTY(bool audible READ audible NOTIFY audibleChanged)
-    Q_PROPERTY(QString volumeText READ volumeText NOTIFY volumeChanged)
-    Q_PROPERTY(QString panText READ panText NOTIFY panChanged)
-    Q_PROPERTY(float meterLevel READ meterLevel NOTIFY meterLevelChanged)
-    Q_PROPERTY(QString meterText READ meterText NOTIFY meterLevelChanged)
 
 public:
     explicit TrackViewModel(QString name, QObject *parent = nullptr);
 
-    QString name() const;
-    float volume() const;
-    float pan() const;
-    bool muted() const;
-    bool solo() const;
-    bool audible() const;
-    QString volumeText() const;
-    QString panText() const;
-    float meterLevel() const;
-    QString meterText() const;
+    QString name() const override;
+    float volume() const override;
+    float pan() const override;
+    bool muted() const override;
+    bool solo() const override;
+    bool audible() const override;
+    QString volumeText() const override;
+    QString panText() const override;
+    float meterLevel() const override;
+    QString meterText() const override;
 
     void setBlockedBySolo(bool blockedBySolo);
     void setMeterLevel(float meterLevel);
 
 public slots:
-    void setVolume(float volume);
-    void setPan(float pan);
-    void setMuted(bool muted);
-    void setSolo(bool solo);
+    void setVolume(float volume) override;
+    void setPan(float pan) override;
+    void setMuted(bool muted) override;
+    void setSolo(bool solo) override;
 
 signals:
-    void volumeChanged();
-    void panChanged();
-    void mutedChanged();
-    void soloChanged();
-    void audibleChanged();
-    void meterLevelChanged();
     void dspParamsChanged();
 
 private:

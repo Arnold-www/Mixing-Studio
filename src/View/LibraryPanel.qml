@@ -48,8 +48,8 @@ Rectangle {
         }
 
         Button {
-            text: "Save Snapshot"
-            onClicked: mixerViewModel.saveMockProject()
+            text: "Save Project"
+            onClicked: mixerViewModel.saveProject()
             Layout.fillWidth: true
         }
 

@@ -1,64 +1,72 @@
 #include <Command/PlaybackCommands.h>
 
-PlayCommand::PlayCommand(MixerApp *app)
-    : m_app(app)
+#include <Model/AudioEngine.h>
+
+#include <algorithm>
+
+PlayCommand::PlayCommand(AudioEngine *engine)
+    : m_engine(engine)
 {
 }
 
 void PlayCommand::execute()
 {
-    if (m_app) {
-        m_app->play();
+    if (m_engine) {
+        m_engine->play();
     }
 }
 
-PauseCommand::PauseCommand(MixerApp *app)
-    : m_app(app)
+PauseCommand::PauseCommand(AudioEngine *engine)
+    : m_engine(engine)
 {
 }
 
 void PauseCommand::execute()
 {
-    if (m_app) {
-        m_app->pause();
+    if (m_engine) {
+        m_engine->pause();
     }
 }
 
-StopCommand::StopCommand(MixerApp *app)
-    : m_app(app)
+StopCommand::StopCommand(AudioEngine *engine)
+    : m_engine(engine)
 {
 }
 
 void StopCommand::execute()
 {
-    if (m_app) {
-        m_app->stop();
+    if (m_engine) {
+        m_engine->stop();
     }
 }
 
-SeekProgressCommand::SeekProgressCommand(MixerApp *app, float progress)
-    : m_app(app)
+SeekProgressCommand::SeekProgressCommand(AudioEngine *engine, float progress)
+    : m_engine(engine)
     , m_progress(progress)
 {
 }
 
 void SeekProgressCommand::execute()
 {
-    if (m_app) {
-        m_app->seekToProgress(m_progress);
+    if (!m_engine || m_engine->durationMs() <= 0) {
+        return;
     }
+
+    const float clamped = std::clamp(m_progress, 0.0f, 1.0f);
+    m_engine->seek(static_cast<int>(clamped * m_engine->durationMs()));
 }
 
-SetMasterVolumeCommand::SetMasterVolumeCommand(MixerApp *app, float volume)
-    : m_app(app)
+SetMasterVolumeCommand::SetMasterVolumeCommand(AudioEngine *engine, float volume)
+    : m_engine(engine)
     , m_volume(volume)
 {
 }
 
 void SetMasterVolumeCommand::execute()
 {
-    if (m_app) {
-        m_clamped = m_app->setMasterVolume(m_volume);
+    m_clamped = std::clamp(m_volume, 0.0f, 1.0f);
+    if (m_engine) {
+        m_engine->setMasterVolume(m_clamped);
     }
 }
 

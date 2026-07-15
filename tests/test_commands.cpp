@@ -1,8 +1,10 @@
-#include <App/MixerApp.h>
 #include <Command/MixerCommands.h>
 #include <Model/AudioEngine.h>
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QTemporaryDir>
+
 #include <cstdio>
 
 int main(int argc, char *argv[])
@@ -13,25 +15,46 @@ int main(int argc, char *argv[])
     int failures = 0;
 
     AudioEngine engine;
-    MixerApp mixerApp(&engine);
 
-    ImportMockTrackCommand importCmd(&mixerApp, 0);
+    ImportMockTrackCommand importCmd(&engine, 0);
     importCmd.execute();
     if (importCmd.trackName().isEmpty() || engine.trackCount() != 1) {
         std::fprintf(stderr, "ImportMockTrackCommand failed\n");
         ++failures;
     }
 
-    PlayCommand(&mixerApp).execute();
-    if (!mixerApp.isPlaying()) {
+    PlayCommand(&engine).execute();
+    if (!engine.isPlaying()) {
         std::fprintf(stderr, "PlayCommand failed\n");
         ++failures;
     }
 
-    PauseCommand(&mixerApp).execute();
-    if (mixerApp.isPlaying()) {
+    PauseCommand(&engine).execute();
+    if (engine.isPlaying()) {
         std::fprintf(stderr, "PauseCommand failed\n");
         ++failures;
+    }
+
+    QTemporaryDir temp;
+    if (!temp.isValid()) {
+        std::fprintf(stderr, "QTemporaryDir failed\n");
+        ++failures;
+    } else {
+        const QString path = QDir(temp.path()).filePath(QStringLiteral("cmd_project.json"));
+        SaveProjectCommand saveCmd(&engine, path);
+        saveCmd.execute();
+        if (!saveCmd.ok()) {
+            std::fprintf(stderr, "SaveProjectCommand failed\n");
+            ++failures;
+        }
+
+        engine.clearTracks();
+        LoadProjectCommand loadCmd(&engine, path);
+        loadCmd.execute();
+        if (!loadCmd.ok() || engine.trackCount() != 1) {
+            std::fprintf(stderr, "LoadProjectCommand failed\n");
+            ++failures;
+        }
     }
 
     if (failures == 0) {
