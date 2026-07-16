@@ -14,7 +14,7 @@ include/ / src/
   DSP/
     DspProcessor.* / DspAnalysis.*
   Model/
-    AudioEngine.* / AudioTrack.h / AssetLibrary.* / ProjectStore.*
+    AudioEngine.* / AudioTrack.h / AssetLibrary.* / ProjectStore.* / WavExporter.*
   ViewModel/
     IMixerViewModel.h / ITrackViewModel.h   # QML 契约（Q_PROPERTY + slots/signals）
     RealMixerViewModel.*                    # 实现；聚合 AudioEngine
@@ -26,6 +26,10 @@ include/ / src/
   View/
     Main.qml 及子组件    # 只绑定 mixerViewModel 契约属性/槽
 ```
+
+最终交付前核对见 [ARCHITECTURE_CHECKLIST.md](ARCHITECTURE_CHECKLIST.md)。
+
+真实音频链路：`AudioFileDecoder`（WAV/MP3）→ 轨 `pcmMono` → `renderMixAtMs` / `QAudioSink`；QML 用 FileDialog / Load Sample / Loop / Mock。
 
 ## 分层约束
 

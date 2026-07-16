@@ -67,3 +67,37 @@ private:
     bool m_ok = false;
     QString m_status;
 };
+
+class ExportMixCommand final : public ICommand
+{
+public:
+    ExportMixCommand(AudioEngine *engine, QString path, int durationMs = -1);
+    void execute() override;
+    bool ok() const;
+    QString status() const;
+    QString path() const;
+
+private:
+    AudioEngine *m_engine = nullptr;
+    QString m_path;
+    int m_durationMs = -1;
+    bool m_ok = false;
+    QString m_status;
+};
+
+class ImportLocalFileCommand final : public ICommand
+{
+public:
+    ImportLocalFileCommand(AudioEngine *engine, QString path);
+    void execute() override;
+    bool ok() const;
+    QString status() const;
+    QString displayName() const;
+
+private:
+    AudioEngine *m_engine = nullptr;
+    QString m_path;
+    bool m_ok = false;
+    QString m_status;
+    QString m_displayName;
+};

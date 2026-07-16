@@ -10,8 +10,19 @@ struct TrackDspParams
 {
     float volume = 0.8f;
     float pan = 0.0f;
+    float playbackRate = 1.0f;
     bool muted = false;
     bool solo = false;
+    float eqLowDb = 0.0f;
+    float eqMidDb = 0.0f;
+    float eqHighDb = 0.0f;
+    QVector<float> eqBands;
+    float compThreshold = 0.7f;
+    float compRatio = 4.0f;
+    bool fxBypass = false;
+    bool loopEnabled = false;
+    float loopStart = 0.0f;
+    float loopEnd = 1.0f;
 };
 
 struct SoloPlan

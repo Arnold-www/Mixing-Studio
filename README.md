@@ -27,6 +27,8 @@ View 通过 **接口面向** 解耦：QML 只绑定 `IMixerViewModel*`，由 App
 
 详见 [`scripts/README.md`](scripts/README.md)。脚本会自动探测本机 Qt，**无需手写路径**。
 
+启动后可用 **Import Audio** 选择本地 `.wav` / `.mp3`；**Load Sample** 加载内置样例；**Loop** / **Mock** 在 Transport 栏。
+
 ```powershell
 # 一键：探测 Qt → 配置/构建 → 启动（推荐）
 .\scripts\run_app.ps1

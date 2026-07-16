@@ -40,6 +40,7 @@ void expectNear(float actual, float expected, const char *message)
 
 int main(int argc, char *argv[])
 {
+    qputenv("MIXING_STUDIO_FORCE_TIMER_CLOCK", "1");
     QCoreApplication app(argc, argv);
 
     AudioEngine engine;
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
     engine.importTrack("Backing Vocal.wav");
     expectEqual(engine.trackCount(), 2, "Imported tracks should be counted");
     expectEqual(engine.tracks().size(), 2, "Track name list should match count");
-    expectEqual(engine.durationMs(), 180000, "First import should set placeholder duration");
+    expectEqual(engine.durationMs(), 3000, "First import should set placeholder duration");
     expectTrue(engine.trackData().at(0).sourcePath == QStringLiteral("Lead Vocal.wav"),
                "Track source path should be stored");
     expectTrue(engine.trackData().at(0).displayName == QStringLiteral("Lead Vocal.wav"),
@@ -79,21 +80,21 @@ int main(int argc, char *argv[])
     expectEqual(engine.positionMs(), pausedPosition, "Paused engine should not advance");
 
     engine.seek(200000);
-    expectEqual(engine.positionMs(), 180000, "Seek should clamp to duration");
+    expectEqual(engine.positionMs(), 3000, "Seek should clamp to duration");
 
-    engine.seek(45000);
-    expectEqual(engine.positionMs(), 45000, "Seek should store in-range position");
+    engine.seek(1500);
+    expectEqual(engine.positionMs(), 1500, "Seek should store in-range position");
 
-    engine.setLoopRange(30000, 90000);
-    expectEqual(engine.loopStartMs(), 30000, "Loop start should be stored");
-    expectEqual(engine.loopEndMs(), 90000, "Loop end should be stored");
+    engine.setLoopRange(500, 2000);
+    expectEqual(engine.loopStartMs(), 500, "Loop start should be stored");
+    expectEqual(engine.loopEndMs(), 2000, "Loop end should be stored");
 
     engine.play();
-    engine.seek(89500);
+    engine.seek(1950);
     QTimer::singleShot(120, &loop, &QEventLoop::quit);
     loop.exec();
-    expectTrue(engine.positionMs() < 90000, "Playback should wrap inside loop range");
-    expectTrue(engine.positionMs() >= 30000, "Loop wrap should land at or after loop start");
+    expectTrue(engine.positionMs() < 2000, "Playback should wrap inside loop range");
+    expectTrue(engine.positionMs() >= 500, "Loop wrap should land at or after loop start");
 
     engine.setMasterVolume(1.5f);
     expectNear(engine.masterVolume(), 1.0f, "Master volume should clamp high values");
@@ -107,6 +108,15 @@ int main(int argc, char *argv[])
     engine.clearTracks();
     expectEqual(engine.trackCount(), 0, "Clear should remove all tracks");
     expectEqual(engine.durationMs(), 0, "Clear should reset duration");
+
+    engine.importTrack("Kick.wav");
+    engine.importTrack("Snare.wav");
+    engine.importTrack("Hat.wav");
+    expectEqual(engine.trackCount(), 3, "Three tracks should be present before remove");
+    expectTrue(engine.removeTrack(1), "Removing middle track should succeed");
+    expectEqual(engine.trackCount(), 2, "Track count should drop after remove");
+    expectTrue(!engine.removeTrack(5), "Invalid remove index should fail");
+    engine.clearTracks();
 
     // Stage 3: track DSP params + offline mix / mute / solo / limiter path
     engine.importTrack("Kick.wav");
@@ -161,8 +171,8 @@ int main(int argc, char *argv[])
 
     // Stage 4 analysis refresh on placeholder buffer
     engine.refreshAnalysis();
-    expectTrue(engine.waveformPoints().size() == 64, "Waveform should expose 64 bins");
-    expectTrue(engine.spectrumLevels().size() == 18, "Spectrum should expose 18 bands");
+    expectTrue(engine.waveformPoints().size() == 256, "Waveform should expose 256 bins");
+    expectTrue(engine.spectrumLevels().size() == 32, "Spectrum should expose 32 bands");
     expectTrue(engine.peakLevel() >= 0.0f, "Peak level should be non-negative");
 
     return 0;

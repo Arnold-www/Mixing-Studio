@@ -72,7 +72,22 @@ WITH_APP=1 ./scripts/run_tests.sh
 | 2026-07-14 | 集成构建 | A 侧阶段 4 MixingStudio + Sql | `cmake --build build --config Debug --target MixingStudio` | 通过 | 无 | 待提交 |
 | 2026-07-14 | 架构检查 | 阶段 4 MVVM 边界 | `.\scripts\validate_feature.ps1` | 通过，13/13 | 无 | 待提交 |
 | 2026-07-16 | 单元测试 | 阶段 4 RealVM 改绑 | `.\scripts\run_tests.ps1 -WithApp` | 通过，6/6 | 无 | 待提交 |
-| 2026-07-16 | 架构检查 | 阶段 4 改绑后边界 | `.\scripts\validate_feature.ps1` | 通过，27/27 | 无 | 待提交 |
+| 2026-07-16 | 架构检查 | 阶段 4 改绑后边界 | `.\scripts\validate_feature.ps1` | 通过，27/27 | 无 | `37f8b8c` |
+| 2026-07-16 | 单元测试 | 阶段 5 WAV 导出 / DSP 补强 | `.\scripts\run_tests.ps1 -WithApp` | 通过，7/7 | 无 | 待提交 |
+| 2026-07-16 | 架构检查 | 阶段 5 清单 + validate | `.\scripts\validate_feature.ps1` | 通过，28/28 | 无 | 待提交 |
+
+## 最近一次 CTest 输出（阶段 5）
+
+```text
+1/7 Test #1: dsp_processor ....................   Passed
+2/7 Test #2: audio_engine .....................   Passed
+3/7 Test #3: project_store ....................   Passed
+4/7 Test #4: asset_library ....................   Passed
+5/7 Test #5: common_types .....................   Passed
+6/7 Test #6: commands .........................   Passed
+7/7 Test #7: wav_export .......................   Passed
+100% tests passed, 0 tests failed out of 7
+```
 
 ## 最近一次 CTest 输出（阶段 4 改绑）
 

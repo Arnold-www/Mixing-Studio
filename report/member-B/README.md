@@ -2,6 +2,15 @@
 
 成员 B 主责：ViewModel / View / Report。
 
+## 交叉测试入口（A 侧后期集成）
+
+macOS 启动方式、主界面各控件作用（UI 使用说明）与简要验收表见：
+
+- [使用说明_成员B测试指南.md](../member-A/使用说明_成员B测试指南.md)
+- 功能背景：[功能报告_后期集成与UI.md](../member-A/功能报告_后期集成与UI.md)
+
+测完请在 [CROSS_TEST_LOG.md](../shared/CROSS_TEST_LOG.md) 补一行。
+
 ## 负责模块
 
 - `src/ViewModel/`

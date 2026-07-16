@@ -2,6 +2,9 @@
 
 #include <Model/AudioEngine.h>
 
+#include <QFileInfo>
+#include <QUrl>
+
 #include <utility>
 
 ImportMockTrackCommand::ImportMockTrackCommand(AudioEngine *engine, int existingTrackCount)
@@ -43,10 +46,20 @@ void ImportAssetCommand::execute()
         return;
     }
 
-    m_engine->registerAsset(m_name, m_name);
+    QString path = m_engine->resolveAssetPath(m_name);
+    if (path.isEmpty()) {
+        path = m_name;
+    }
+
+    if (m_engine->importAudioFile(path)) {
+        m_ok = true;
+        m_status = QStringLiteral("Imported asset: %1").arg(m_name);
+        return;
+    }
+
     m_engine->importTrack(m_name);
     m_ok = true;
-    m_status = QStringLiteral("Imported asset: %1").arg(m_name);
+    m_status = QStringLiteral("Imported placeholder asset: %1").arg(m_name);
 }
 
 bool ImportAssetCommand::ok() const
@@ -131,4 +144,85 @@ bool LoadProjectCommand::ok() const
 QString LoadProjectCommand::status() const
 {
     return m_status;
+}
+
+ExportMixCommand::ExportMixCommand(AudioEngine *engine, QString path, int durationMs)
+    : m_engine(engine)
+    , m_path(std::move(path))
+    , m_durationMs(durationMs)
+{
+}
+
+void ExportMixCommand::execute()
+{
+    if (!m_engine || m_path.trimmed().isEmpty()) {
+        m_ok = false;
+        m_status = QStringLiteral("Missing engine or export path.");
+        return;
+    }
+
+    m_ok = m_engine->exportMixToWav(m_path, m_durationMs);
+    m_status = m_ok ? QStringLiteral("Exported mix WAV: %1").arg(m_path)
+                    : QStringLiteral("Failed to export mix WAV.");
+}
+
+bool ExportMixCommand::ok() const
+{
+    return m_ok;
+}
+
+QString ExportMixCommand::status() const
+{
+    return m_status;
+}
+
+QString ExportMixCommand::path() const
+{
+    return m_path;
+}
+
+ImportLocalFileCommand::ImportLocalFileCommand(AudioEngine *engine, QString path)
+    : m_engine(engine)
+    , m_path(std::move(path))
+{
+}
+
+void ImportLocalFileCommand::execute()
+{
+    if (!m_engine || m_path.trimmed().isEmpty()) {
+        m_ok = false;
+        m_status = QStringLiteral("Choose a WAV file to import.");
+        return;
+    }
+
+    QString localPath = m_path;
+    if (localPath.startsWith(QStringLiteral("file:"), Qt::CaseInsensitive)) {
+        localPath = QUrl(localPath).toLocalFile();
+    }
+
+    if (!m_engine->importAudioFile(localPath)) {
+        m_ok = false;
+        m_status = QStringLiteral("Failed to decode audio: %1").arg(localPath);
+        return;
+    }
+
+    m_engine->registerAsset(localPath);
+    m_displayName = QFileInfo(localPath).fileName();
+    m_ok = true;
+    m_status = QStringLiteral("Imported local audio: %1").arg(m_displayName);
+}
+
+bool ImportLocalFileCommand::ok() const
+{
+    return m_ok;
+}
+
+QString ImportLocalFileCommand::status() const
+{
+    return m_status;
+}
+
+QString ImportLocalFileCommand::displayName() const
+{
+    return m_displayName;
 }

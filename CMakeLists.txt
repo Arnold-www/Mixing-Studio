@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql Multimedia)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -29,6 +29,12 @@ set(MIXING_STUDIO_MODEL_SOURCES
     src/Model/ProjectStore.cpp
     include/Model/AssetLibrary.h
     src/Model/AssetLibrary.cpp
+    include/Model/WavExporter.h
+    src/Model/WavExporter.cpp
+    include/Model/WavDecoder.h
+    src/Model/WavDecoder.cpp
+    include/Model/AudioFileDecoder.h
+    src/Model/AudioFileDecoder.cpp
 )
 
 set(MIXING_STUDIO_COMMON_SOURCES
@@ -80,11 +86,24 @@ qt_add_qml_module(MixingStudio
     VERSION 1.0
     QML_FILES
         src/View/Main.qml
+        src/View/Theme.qml
+        src/View/DarkButton.qml
+        src/View/ToolIconButton.qml
+        src/View/ClipLoopToggle.qml
+        src/View/NumericValueField.qml
+        src/View/LevelMeterBar.qml
+        src/View/TimelineStrip.qml
+        src/View/DetachablePanelHost.qml
         src/View/TransportBar.qml
         src/View/WaveformPanel.qml
         src/View/SpectrumPanel.qml
+        src/View/ProjectsPanel.qml
         src/View/LibraryPanel.qml
         src/View/TrackMixerList.qml
+)
+
+set_source_files_properties(src/View/Theme.qml PROPERTIES
+    QT_QML_SINGLETON_TYPE TRUE
 )
 
 target_link_libraries(MixingStudio
@@ -95,11 +114,19 @@ target_link_libraries(MixingStudio
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql
+        Qt6::Multimedia
 )
 
 target_include_directories(MixingStudio
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_custom_command(TARGET MixingStudio POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/samples"
+            "$<TARGET_FILE_DIR:MixingStudio>/samples"
+    COMMENT "Copy sample project next to MixingStudio"
 )
 
 enable_testing()
@@ -134,6 +161,7 @@ target_link_libraries(test_audio_engine
     PRIVATE
         Qt6::Core
         Qt6::Sql
+        Qt6::Multimedia
 )
 
 add_test(NAME audio_engine COMMAND test_audio_engine)
@@ -159,6 +187,7 @@ target_link_libraries(test_project_store
     PRIVATE
         Qt6::Core
         Qt6::Sql
+        Qt6::Multimedia
 )
 
 add_test(NAME project_store COMMAND test_project_store)
@@ -181,6 +210,7 @@ target_link_libraries(test_asset_library
     PRIVATE
         Qt6::Core
         Qt6::Sql
+        Qt6::Multimedia
 )
 
 add_test(NAME asset_library COMMAND test_asset_library)
@@ -227,6 +257,7 @@ target_link_libraries(test_commands
     PRIVATE
         Qt6::Core
         Qt6::Sql
+        Qt6::Multimedia
 )
 
 add_test(NAME commands COMMAND test_commands)
@@ -234,3 +265,70 @@ add_test(NAME commands COMMAND test_commands)
 set_tests_properties(commands PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
 )
+
+add_executable(test_wav_export
+    tests/test_wav_export.cpp
+    ${MIXING_STUDIO_MODEL_SOURCES}
+    ${MIXING_STUDIO_DSP_SOURCES}
+)
+
+set_target_properties(test_wav_export PROPERTIES AUTOMOC ON)
+
+target_include_directories(test_wav_export
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(test_wav_export
+    PRIVATE
+        Qt6::Core
+        Qt6::Sql
+        Qt6::Multimedia
+)
+
+add_test(NAME wav_export COMMAND test_wav_export)
+
+set_tests_properties(wav_export PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+)
+
+add_executable(test_wav_decoder
+    tests/test_wav_decoder.cpp
+    src/Model/WavDecoder.cpp
+    src/Model/WavExporter.cpp
+    src/Model/AudioFileDecoder.cpp
+)
+
+target_include_directories(test_wav_decoder
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(test_wav_decoder
+    PRIVATE
+        Qt6::Core
+        Qt6::Multimedia
+)
+
+add_test(NAME wav_decoder COMMAND test_wav_decoder)
+
+set_tests_properties(wav_decoder PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+)
+
+add_executable(test_automation
+    tests/test_automation.cpp
+)
+
+target_include_directories(test_automation
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(test_automation
+    PRIVATE
+        Qt6::Core
+)
+
+add_test(NAME automation COMMAND test_automation)
+

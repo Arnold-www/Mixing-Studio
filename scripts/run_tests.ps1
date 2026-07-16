@@ -49,6 +49,8 @@ if ($WithApp) {
         cmake --build $BuildDir --config $Config --target test_asset_library
         cmake --build $BuildDir --config $Config --target test_common_types
         cmake --build $BuildDir --config $Config --target test_commands
+        cmake --build $BuildDir --config $Config --target test_wav_export
+        cmake --build $BuildDir --config $Config --target test_wav_decoder
     }
 }
 

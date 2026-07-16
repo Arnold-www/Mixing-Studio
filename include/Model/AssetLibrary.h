@@ -17,6 +17,7 @@ public:
     bool upsertAsset(const QString &path, const QString &displayName, QString *errorMessage = nullptr);
     QStringList search(const QString &query) const;
     QStringList recent(int limit = 10) const;
+    QString pathForName(const QString &displayName) const;
 
 private:
     bool ensureSchema(QString *errorMessage);

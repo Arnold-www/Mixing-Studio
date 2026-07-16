@@ -17,7 +17,10 @@
 | 2026-07-11 | A | 阶段 2 / 播放闭环底层接口 | Codex | AI 主导代码生成，人工构建与测试验证 | 构建阶段 2：导入、多轨、播放、Seek、Loop、主音量 | `AudioEngine` 播放定时器、Seek/Loop、`test_audio_engine`；VM 进度对接 Model 时钟 | 默认不自动开启 Loop；保留 B 侧 Mock 分析刷新 | CTest 2/2 通过；App 构建通过 | `b244414` |
 | 2026-07-14 | A | 阶段 3 / 混音与 DSP 闭环（仅 A） | Cursor Grok | AI 主导代码生成，人工规划测试与验证 | 仅完成 A 侧混音/限幅/轨参/EQ/压缩/Bypass 底层与单测 | `DspProcessor` 处理链、`renderMixFrame`、Engine 轨参 API、扩展 CTest；Volume/Pan/Mute/Solo 最小同步 | 不做 B 侧 EQ/Comp/Bypass UI | CTest 2/2；`validate_feature` 13/13 | `7291c53` |
 | 2026-07-14 | A | 阶段 4 / 分析与持久化（仅 A） | Cursor Grok | AI 主导代码生成，人工规划测试与验证 | 波形/VU/频谱/削波 + SQLite/JSON 底层与单测 | `DspProcessor` 分析 API、`ProjectStore`、`AssetLibrary`、`refreshAnalysis`、CTest 4/4 | 不做 B QML 改绑 | CTest 4/4；`validate_feature` 13/13 | 待提交 |
-| 2026-07-16 | 彭 | 阶段 4 / RealVM 改绑闭环 | Cursor Grok | AI 主导实现，人工验收；待张审核 | 去掉 Mock 分析/工程 stub，接 Engine 分析与 JSON/SQLite | `RealMixerViewModel`、`Save/LoadProjectCommand`、Transport VU、CTest 6/6 | 保留占位音频导入；工程写 AppData | CTest 6/6；`validate_feature` 27/27 | 待提交 |
+| 2026-07-16 | 彭 | 阶段 4 / RealVM 改绑闭环 | Cursor Grok | AI 主导实现，人工验收；待张审核 | 去掉 Mock 分析/工程 stub，接 Engine 分析与 JSON/SQLite | `RealMixerViewModel`、`Save/LoadProjectCommand`、Transport VU、CTest 6/6 | 保留占位音频导入；工程写 AppData | CTest 6/6；`validate_feature` 27/27 | `37f8b8c` |
+| 2026-07-16 | 彭 | 阶段 5 / WAV 导出与清单 | Cursor Grok | AI 主导实现，人工验收；待张审核 | WAV 导出验收、DSP 补强、架构清单 | `WavExporter`、`exportMixToWav`、Export 按钮、`test_wav_export`、`ARCHITECTURE_CHECKLIST` | UI 导出默认 3s | 见 TEST_AND_TOOLCHAIN 阶段 5 | 待提交 |
+| 2026-07-16 | 彭 | 真实音频 / 本地导入 | Cursor Grok | AI 主导实现，人工验收；待张审核 | FileDialog + WAV 解码 + QAudioSink + EQ/Comp UI | `WavDecoder`、`MixAudioDevice`、`importLocalFile`、轨 FX UI；CTest 8/8 | 安装 Qt Multimedia；Demo Track 保留占位 | CTest 8/8；validate 29/29 | 待提交 |
+| 2026-07-16 | 彭 | Loop/样例/Mock/MP3 | Cursor Grok | AI 主导实现，人工验收；待张审核 | 补齐四项主线缺口并支持 MP3 | Loop UI、recent 扫描、samples、mockValidationMode、AudioFileDecoder | 样例随 POST_BUILD 拷贝 | 见本轮 CTest | 待提交 |
 
 ## 采用模式示例
 

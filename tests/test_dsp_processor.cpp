@@ -100,5 +100,35 @@ int main()
     }
     expectTrue(spectrumEnergy > 0.0f, "Spectrum energy should be positive for sine");
 
+    // Phase 5: end-to-end track path with compression enabled (non-bypass).
+    TrackProcessParams hotTrack;
+    hotTrack.volume = 1.0f;
+    hotTrack.pan = 0.0f;
+    hotTrack.audible = true;
+    hotTrack.fxBypass = false;
+    hotTrack.compThreshold = 0.2f;
+    hotTrack.compRatio = 4.0f;
+    const StereoSample hotOut = DspProcessor::processTrackSample(0.8f, hotTrack);
+    expectTrue(std::fabs(hotOut.left) < 0.8f, "Track compressor path should attenuate hot sample");
+
+    float bands[10] = {};
+    bands[2] = 6.0f;
+    const float graphicBoosted = DspProcessor::applyGraphicEq(0.2f, bands, 10);
+    expectTrue(graphicBoosted > 0.2f, "Graphic EQ boost should raise amplitude");
+    const float graphicFlat = DspProcessor::applyGraphicEq(0.2f, bands, 0);
+    expectNear(graphicFlat, 0.2f, "Empty graphic EQ should pass sample through");
+
+    TrackProcessParams graphicTrack;
+    graphicTrack.volume = 1.0f;
+    graphicTrack.pan = 0.0f;
+    graphicTrack.audible = true;
+    graphicTrack.fxBypass = false;
+    graphicTrack.useGraphicEq = true;
+    graphicTrack.eqBands[4] = 6.0f;
+    graphicTrack.compThreshold = 1.0f;
+    graphicTrack.compRatio = 1.0f;
+    const StereoSample graphicOut = DspProcessor::processTrackSample(0.25f, graphicTrack);
+    expectTrue(std::fabs(graphicOut.left) > 0.25f, "Graphic EQ track path should boost mid band");
+
     return 0;
 }

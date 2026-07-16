@@ -17,3 +17,5 @@ out/
 *.mp3
 *.flac
 *.m4a
+samples/_download/
+samples/_synthetic_backup/

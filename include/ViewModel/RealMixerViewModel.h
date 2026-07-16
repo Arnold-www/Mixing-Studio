@@ -34,18 +34,36 @@ public:
     QString assetSearchText() const override;
     QStringList filteredAssetNames() const override;
     QStringList recentProjectNames() const override;
+    bool loopEnabled() const override;
+    float loopStartProgress() const override;
+    float loopEndProgress() const override;
+    bool mockValidationMode() const override;
+    int selectedTrackIndex() const override;
+    QVariantList automationPoints() const override;
 
 public slots:
     void importMockTrack() override;
+    void importLocalFile(const QString &pathOrUrl) override;
     void importAssetByName(const QString &name) override;
     void restoreRecentProject(const QString &name) override;
+    void deleteRecentProject(const QString &name) override;
     void saveProject() override;
+    void exportMix() override;
+    void loadSampleProject() override;
     void play() override;
     void pause() override;
     void stop() override;
     void setMasterVolume(float volume) override;
     void seekToProgress(float progress) override;
     void setAssetSearchText(const QString &text) override;
+    void setLoopEnabled(bool enabled) override;
+    void setLoopRangeByProgress(float start, float end) override;
+    void setMockValidationMode(bool enabled) override;
+    void setSelectedTrackIndex(int index) override;
+    void addAutomationPoint(float progress, float value) override;
+    void moveAutomationPoint(int pointIndex, float progress, float value) override;
+    void clearAutomation() override;
+    void deleteSelectedTrack() override;
 
 private:
     void addTrack(const QString &name);
@@ -56,10 +74,16 @@ private:
     void syncTrackToEngine(int index);
     void syncAllTracksToEngine();
     void pullAnalysisFromEngine();
+    void applyMockAnalysisData();
     void refreshFilteredAssetNames();
     void ensureAssetLibrary();
-    void seedAssetLibraryIfEmpty();
+    void seedSampleAssets();
+    void refreshRecentProjectsFromDisk();
+    void applyLoopToEngine();
+    void refreshAutomationPoints();
     QString projectsDirectory() const;
+    QString exportsDirectory() const;
+    QString samplesDirectory() const;
     QString projectFilePath(const QString &fileName) const;
     QString formatTime(int seconds) const;
 
@@ -79,4 +103,11 @@ private:
     QString m_assetSearchText;
     QStringList m_filteredAssetNames;
     QStringList m_recentProjectNames;
+    bool m_loopEnabled = false;
+    float m_loopStartProgress = 0.0f;
+    float m_loopEndProgress = 1.0f;
+    bool m_mockValidationMode = false;
+    int m_analysisFrame = 0;
+    int m_selectedTrackIndex = -1;
+    QVariantList m_automationPoints;
 };

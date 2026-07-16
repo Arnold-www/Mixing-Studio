@@ -148,3 +148,18 @@ QStringList AssetLibrary::recent(int limit) const
     }
     return results;
 }
+
+QString AssetLibrary::pathForName(const QString &displayName) const
+{
+    if (!m_open || displayName.trimmed().isEmpty()) {
+        return {};
+    }
+
+    QSqlQuery query(database());
+    query.prepare(QStringLiteral("SELECT path FROM assets WHERE name = ? ORDER BY added_at DESC LIMIT 1"));
+    query.addBindValue(displayName);
+    if (!query.exec() || !query.next()) {
+        return {};
+    }
+    return query.value(0).toString();
+}

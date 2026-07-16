@@ -29,6 +29,12 @@ class IMixerViewModel : public QObject
     Q_PROPERTY(QString assetSearchText READ assetSearchText WRITE setAssetSearchText NOTIFY assetSearchTextChanged)
     Q_PROPERTY(QStringList filteredAssetNames READ filteredAssetNames NOTIFY filteredAssetNamesChanged)
     Q_PROPERTY(QStringList recentProjectNames READ recentProjectNames NOTIFY recentProjectNamesChanged)
+    Q_PROPERTY(bool loopEnabled READ loopEnabled WRITE setLoopEnabled NOTIFY loopRangeChanged)
+    Q_PROPERTY(float loopStartProgress READ loopStartProgress NOTIFY loopRangeChanged)
+    Q_PROPERTY(float loopEndProgress READ loopEndProgress NOTIFY loopRangeChanged)
+    Q_PROPERTY(bool mockValidationMode READ mockValidationMode WRITE setMockValidationMode NOTIFY mockValidationModeChanged)
+    Q_PROPERTY(int selectedTrackIndex READ selectedTrackIndex WRITE setSelectedTrackIndex NOTIFY selectedTrackIndexChanged)
+    Q_PROPERTY(QVariantList automationPoints READ automationPoints NOTIFY automationPointsChanged)
 
 public:
     explicit IMixerViewModel(QObject *parent = nullptr)
@@ -53,18 +59,36 @@ public:
     virtual QString assetSearchText() const = 0;
     virtual QStringList filteredAssetNames() const = 0;
     virtual QStringList recentProjectNames() const = 0;
+    virtual bool loopEnabled() const = 0;
+    virtual float loopStartProgress() const = 0;
+    virtual float loopEndProgress() const = 0;
+    virtual bool mockValidationMode() const = 0;
+    virtual int selectedTrackIndex() const = 0;
+    virtual QVariantList automationPoints() const = 0;
 
 public slots:
     virtual void importMockTrack() = 0;
+    virtual void importLocalFile(const QString &pathOrUrl) = 0;
     virtual void importAssetByName(const QString &name) = 0;
     virtual void restoreRecentProject(const QString &name) = 0;
+    virtual void deleteRecentProject(const QString &name) = 0;
     virtual void saveProject() = 0;
+    virtual void exportMix() = 0;
+    virtual void loadSampleProject() = 0;
     virtual void play() = 0;
     virtual void pause() = 0;
     virtual void stop() = 0;
     virtual void setMasterVolume(float volume) = 0;
     virtual void seekToProgress(float progress) = 0;
     virtual void setAssetSearchText(const QString &text) = 0;
+    virtual void setLoopEnabled(bool enabled) = 0;
+    virtual void setLoopRangeByProgress(float start, float end) = 0;
+    virtual void setMockValidationMode(bool enabled) = 0;
+    virtual void setSelectedTrackIndex(int index) = 0;
+    virtual void addAutomationPoint(float progress, float value) = 0;
+    virtual void moveAutomationPoint(int pointIndex, float progress, float value) = 0;
+    virtual void clearAutomation() = 0;
+    virtual void deleteSelectedTrack() = 0;
 
 signals:
     void tracksChanged();
@@ -80,4 +104,8 @@ signals:
     void assetSearchTextChanged();
     void filteredAssetNamesChanged();
     void recentProjectNamesChanged();
+    void loopRangeChanged();
+    void mockValidationModeChanged();
+    void selectedTrackIndexChanged();
+    void automationPointsChanged();
 };

@@ -37,6 +37,19 @@ float DspProcessor::applyThreeBandEq(float sample, float lowDb, float midDb, flo
     return applyGain(sample, gain);
 }
 
+float DspProcessor::applyGraphicEq(float sample, const float *bands, int bandCount)
+{
+    if (!bands || bandCount <= 0) {
+        return clampSample(sample);
+    }
+
+    float gain = 1.0f;
+    for (int i = 0; i < bandCount; ++i) {
+        gain *= dbToLinear(bands[i]);
+    }
+    return applyGain(sample, gain);
+}
+
 float DspProcessor::applyCompressor(float sample, float threshold, float ratio)
 {
     const float clampedThreshold = std::clamp(threshold, 0.05f, 1.0f);
@@ -60,7 +73,11 @@ StereoSample DspProcessor::processTrackSample(float monoSample, const TrackProce
 
     float processed = clampSample(monoSample);
     if (!params.fxBypass) {
-        processed = applyThreeBandEq(processed, params.eqLowDb, params.eqMidDb, params.eqHighDb);
+        if (params.useGraphicEq) {
+            processed = applyGraphicEq(processed, params.eqBands, TrackProcessParams::kEqBandCount);
+        } else {
+            processed = applyThreeBandEq(processed, params.eqLowDb, params.eqMidDb, params.eqHighDb);
+        }
         processed = applyCompressor(processed, params.compThreshold, params.compRatio);
     }
 

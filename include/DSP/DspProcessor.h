@@ -8,6 +8,9 @@ struct TrackProcessParams
     float eqLowDb = 0.0f;
     float eqMidDb = 0.0f;
     float eqHighDb = 0.0f;
+    static constexpr int kEqBandCount = 10;
+    float eqBands[kEqBandCount] = {};
+    bool useGraphicEq = false;
     float compThreshold = 0.7f;
     float compRatio = 4.0f;
     bool fxBypass = false;
@@ -29,6 +32,7 @@ public:
     static float panRightGain(float pan);
     static float dbToLinear(float gainDb);
     static float applyThreeBandEq(float sample, float lowDb, float midDb, float highDb);
+    static float applyGraphicEq(float sample, const float *bands, int bandCount);
     static float applyCompressor(float sample, float threshold, float ratio);
     static StereoSample processTrackSample(float monoSample, const TrackProcessParams &params);
     static StereoSample mixLinear(const StereoSample &accumulator, const StereoSample &track);

@@ -52,6 +52,9 @@ $requiredHeaders = @(
     "include/DSP/DspAnalysis.h",
     "include/Model/AudioEngine.h",
     "include/Model/AudioTrack.h",
+    "include/Model/WavExporter.h",
+    "include/Model/WavDecoder.h",
+    "include/Model/AudioFileDecoder.h",
     "include/App/MixingStudioApp.h",
     "include/Command/ICommand.h",
     "include/Command/PlaybackCommands.h",
@@ -153,6 +156,17 @@ $results += Add-Result `
     -Name "CMake includes public header directory" `
     -Passed ($cmakeContent -match "target_include_directories" -and $cmakeContent -match "/include|\\include|include") `
     -Detail "CMakeLists.txt"
+
+$sampleWavs = @(Get-ChildItem -Path "samples" -Filter "*.wav" -ErrorAction SilentlyContinue)
+$results += Add-Result `
+    -Name "Sample library has at least 8 WAV files" `
+    -Passed ($sampleWavs.Count -ge 8) `
+    -Detail ("Found {0} wav files under samples/" -f $sampleWavs.Count)
+
+$results += Add-Result `
+    -Name "Demo session project exists" `
+    -Passed (Test-PathExists "samples/demo_session.json") `
+    -Detail "samples/demo_session.json"
 
 $failed = $results | Where-Object { -not $_.Passed }
 

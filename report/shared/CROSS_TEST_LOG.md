@@ -9,7 +9,10 @@
 | 2026-07-11 | 阶段 2：播放闭环 | 成员 A | 成员 A（自测）→ 成员 B（UI/集成分支） | `AudioEngine` 导入/播放/Seek/Loop；`test_audio_engine`；VM 进度对接 Model；B 在集成分支验证播控 UI | 无 | 不适用 | **是，中期已实现项互相通过** | `b244414`、`b28ea5c` |
 | 2026-07-14 | 阶段 3：混音与 DSP | 成员 A | 成员 A（自测）→ 成员 B（轨参 UI） | DSP EQ/压缩/混音/限幅；`renderMixFrame` Mute/Solo/Pan；Volume/Pan/Mute/Solo 经 VM 同步；`validate_feature` | EQ/Comp UI 不在中期交付 | 不适用 | **是：轨参/混音底层与已挂 UI 互相通过**；EQ/Comp 控件属后期 | `7291c53`、`194d823` |
 | 2026-07-14 | 阶段 4：分析与持久化（仅 A） | 成员 A | 成员 A（自测） | 波形/VU/频谱/削波；JSON 工程；SQLite 素材库；CTest 4/4 | 无阻塞；B 仍用 Mock 可视化 | 不适用 | 未纳入中期集成分支；待后期 B 改绑后再交叉 | 待提交 |
-| 2026-07-16 | 阶段 4：RealVM 改绑闭环 | 成员彭 | 待成员张审核 | RealVM 接 `refreshAnalysis`/`ProjectStore`/`AssetLibrary`；QML VU；CTest 6/6 | 无 | 不适用 | 待审核通过后合入 | 待提交 |
+| 2026-07-16 | 阶段 4：RealVM 改绑闭环 | 成员彭 | 待成员张审核 | RealVM 接 `refreshAnalysis`/`ProjectStore`/`AssetLibrary`；QML VU；CTest 6/6 | 无 | 不适用 | 待审核通过后合入 | `37f8b8c` |
+| 2026-07-16 | 阶段 5：WAV 导出与交付清单 | 成员彭 | 待成员张审核 | `WavExporter`/`exportMixToWav`、Export UI、DSP 补强、架构清单；CTest 含 `wav_export` | 无 | 不适用 | 待审核通过后合入 | 待提交 |
+| 2026-07-16 | 真实音频链路 | 成员彭 | 待成员张审核 | `WavDecoder`、FileDialog 导入、`QAudioSink`、真实分析/导出、EQ/Comp UI；CTest 8/8 | 无 | 不适用 | 待审核 | 待提交 |
+| 2026-07-16 | 四项缺口 + MP3 | 成员彭 | 待成员张审核 | Loop UI、最近工程扫描、样例工程、Mock 模式、MP3 解码 | 无 | 不适用 | 待审核 | 待提交 |
 
 ## 检查重点
 

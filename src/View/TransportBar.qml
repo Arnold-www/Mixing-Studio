@@ -1,104 +1,156 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
+import QtQuick.Dialogs
+import MixingStudio
 
 Rectangle {
-    Layout.fillWidth: true
-    Layout.preferredHeight: 82
-    radius: 8
-    color: "#ffffff"
-    border.color: "#d6dde7"
+    id: bar
+    color: "#12151c"
+    border.color: "#2a3140"
+    radius: 6
 
-    GridLayout {
+    Material.theme: Material.Dark
+    Material.accent: Material.Teal
+    Material.foreground: "#ffffff"
+
+    property bool libraryOpen: false
+    property bool projectsOpen: false
+    property bool spectrumOpen: false
+
+    FileDialog {
+        id: audioDialog
+        title: "Import Audio"
+        nameFilters: ["Audio files (*.wav *.mp3)", "WAV (*.wav)", "MP3 (*.mp3)"]
+        fileMode: FileDialog.OpenFiles
+        onAccepted: {
+            for (var i = 0; i < selectedFiles.length; ++i)
+                mixerViewModel.importLocalFile(selectedFiles[i])
+        }
+    }
+
+    RowLayout {
         anchors.fill: parent
         anchors.margins: 10
-        columns: 10
-        columnSpacing: 10
-        rowSpacing: 8
+        spacing: 8
 
         Label {
             text: "Mixing Studio"
-            font.pixelSize: 22
+            font.pixelSize: 15
             font.bold: true
-            color: "#18202a"
-            Layout.preferredWidth: 190
+            color: "#ffffff"
+            Layout.rightMargin: 4
         }
 
-        Button {
-            text: "Import"
-            Layout.preferredWidth: 86
-            onClicked: mixerViewModel.importMockTrack()
+        ToolIconButton {
+            text: "Library"
+            toggled: bar.libraryOpen
+            onClicked: {
+                bar.libraryOpen = !bar.libraryOpen
+                if (bar.libraryOpen)
+                    bar.projectsOpen = false
+            }
+        }
+        ToolIconButton {
+            text: "Projects"
+            toggled: bar.projectsOpen
+            onClicked: {
+                bar.projectsOpen = !bar.projectsOpen
+                if (bar.projectsOpen)
+                    bar.libraryOpen = false
+            }
+        }
+        ToolIconButton {
+            text: "Spectrum"
+            toggled: bar.spectrumOpen
+            onClicked: bar.spectrumOpen = !bar.spectrumOpen
         }
 
-        Button {
+        Item { Layout.preferredWidth: 6 }
+
+        ToolIconButton { text: "Import"; onClicked: audioDialog.open() }
+        ToolIconButton { text: "Demo"; onClicked: mixerViewModel.importMockTrack() }
+        ToolIconButton { text: "Sample"; onClicked: mixerViewModel.loadSampleProject() }
+        ToolIconButton { text: "Save"; onClicked: mixerViewModel.saveProject() }
+        ToolIconButton { text: "Export"; onClicked: mixerViewModel.exportMix() }
+
+        Item { Layout.preferredWidth: 6 }
+
+        ToolIconButton {
             text: mixerViewModel.playing ? "Pause" : "Play"
-            Layout.preferredWidth: 82
+            primary: true
+            toggled: mixerViewModel.playing
+            implicitWidth: 72
             onClicked: mixerViewModel.playing ? mixerViewModel.pause() : mixerViewModel.play()
         }
-
-        Button {
+        ToolIconButton {
             text: "Stop"
-            Layout.preferredWidth: 74
             onClicked: mixerViewModel.stop()
         }
 
         Label {
             text: mixerViewModel.playbackTimeText
-            color: "#374151"
-            font.family: "Menlo"
-            horizontalAlignment: Text.AlignRight
-            Layout.preferredWidth: 132
+            color: "#ffffff"
+            font.family: "Consolas"
+            font.pixelSize: 13
+            Layout.preferredWidth: 120
         }
 
-        Slider {
-            from: 0.0
-            to: 1.0
-            value: mixerViewModel.playbackProgress
-            onMoved: mixerViewModel.seekToProgress(value)
-            Layout.fillWidth: true
-        }
+        Item { Layout.fillWidth: true; Layout.minimumWidth: 8 }
 
         Label {
             text: "Master"
-            color: "#374151"
-            horizontalAlignment: Text.AlignRight
-            Layout.preferredWidth: 58
+            color: "#ffffff"
+            font.pixelSize: 12
+            Layout.alignment: Qt.AlignVCenter
         }
-
         Slider {
+            id: masterSlider
             from: 0.0
             to: 1.0
-            value: mixerViewModel.masterVolume
             onMoved: mixerViewModel.masterVolume = value
-            Layout.preferredWidth: 140
-        }
-
-        Rectangle {
-            Layout.preferredWidth: 70
-            Layout.preferredHeight: 18
-            radius: 3
-            color: "#e5eaf1"
-
-            Rectangle {
-                width: Math.max(2, parent.width * mixerViewModel.vuLevel)
-                height: parent.height
-                radius: 3
-                color: mixerViewModel.clippingDetected ? "#b34d4d" : "#2f7d6d"
+            Layout.preferredWidth: 110
+            Layout.alignment: Qt.AlignVCenter
+            Material.accent: Material.Teal
+            Binding {
+                target: masterSlider
+                property: "value"
+                value: mixerViewModel.masterVolume
+                when: !masterSlider.pressed
             }
         }
-
+        NumericValueField {
+            Layout.preferredWidth: 44
+            Layout.alignment: Qt.AlignVCenter
+            from: 0.0
+            to: 1.0
+            decimals: 0
+            percentScale: true
+            value: mixerViewModel.masterVolume
+            onValueEdited: function(v) { mixerViewModel.masterVolume = v }
+        }
         Label {
-            text: mixerViewModel.clippingDetected ? "CLIP" : "VU"
-            color: mixerViewModel.clippingDetected ? "#b34d4d" : "#6b7280"
-            Layout.preferredWidth: 36
+            text: "%"
+            color: "#c5cede"
+            font.pixelSize: 11
+            Layout.alignment: Qt.AlignVCenter
+        }
+        LevelMeterBar {
+            Layout.preferredWidth: 140
+            Layout.minimumWidth: 120
+            Layout.preferredHeight: 12
+            Layout.alignment: Qt.AlignVCenter
+            currentLevel: mixerViewModel.vuLevel
+            threshold: 0.85
+        }
+        ToolIconButton {
+            text: "Mock"
+            toggled: mixerViewModel.mockValidationMode
+            Layout.alignment: Qt.AlignVCenter
+            onClicked: mixerViewModel.mockValidationMode = !mixerViewModel.mockValidationMode
         }
 
-        Label {
-            text: mixerViewModel.statusMessage
-            color: "#4b5563"
-            elide: Text.ElideRight
-            Layout.columnSpan: 10
-            Layout.fillWidth: true
-        }
+        Item { Layout.preferredWidth: 32; Layout.maximumWidth: 32 }
     }
 }
