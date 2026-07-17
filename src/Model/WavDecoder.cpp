@@ -126,7 +126,11 @@ bool WavDecoder::decodeFile(const QString &path, WavDecodeResult *out, QString *
 
     const bool isFloat = (audioFormat == 3);
     const bool isPcm = (audioFormat == 1);
-    if ((!isPcm && !isFloat) || channels <= 0 || sampleRate <= 0 || bitsPerSample <= 0 || dataOffset < 0) {
+    const bool supportedPcmDepth = bitsPerSample == 8 || bitsPerSample == 16
+        || bitsPerSample == 24 || bitsPerSample == 32;
+    const bool supportedFloatDepth = bitsPerSample == 32;
+    if ((!isPcm && !isFloat) || channels <= 0 || sampleRate <= 0 || dataOffset < 0
+        || (isPcm && !supportedPcmDepth) || (isFloat && !supportedFloatDepth)) {
         if (errorMessage) {
             *errorMessage = QStringLiteral("Unsupported or incomplete WAV format.");
         }

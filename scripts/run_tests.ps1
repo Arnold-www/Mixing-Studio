@@ -52,6 +52,8 @@ if ($WithApp) {
         cmake --build $BuildDir --config $Config --target test_ui_binder
         cmake --build $BuildDir --config $Config --target test_wav_export
         cmake --build $BuildDir --config $Config --target test_wav_decoder
+        cmake --build $BuildDir --config $Config --target test_automation
+        cmake --build $BuildDir --config $Config --target test_audio_pipeline_e2e
     }
 }
 

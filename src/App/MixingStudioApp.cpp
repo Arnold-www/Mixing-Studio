@@ -10,6 +10,7 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QStringList>
+#include <QTimer>
 #include <QVariantList>
 
 namespace {
@@ -69,6 +70,13 @@ int MixingStudioApp::run(int argc, char *argv[])
 
     MixingStudioViewBinder binder(&viewModel);
     binder.bind(engine.rootObjects().constFirst());
+
+    // Exercise the real bootstrap and QML event loop in automated checks
+    // without leaving a window open indefinitely.
+    if (guiApp.arguments().contains(QStringLiteral("--smoke-test"))) {
+        QTimer::singleShot(500, &guiApp, &QCoreApplication::quit);
+    }
+
     return guiApp.exec();
 }
 

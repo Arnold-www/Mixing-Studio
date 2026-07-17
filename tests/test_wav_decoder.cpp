@@ -4,6 +4,8 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
+#include <QtEndian>
 #include <QTemporaryDir>
 #include <QVector>
 
@@ -28,7 +30,9 @@ int main(int argc, char *argv[])
     for (int i = 0; i < frames; ++i) {
         const float s = 0.5f * std::sin(2.0f * 3.14159265f * 440.0f * static_cast<float>(i) / 44100.0f);
         stereo[i * 2] = s;
-        stereo[i * 2 + 1] = -s;
+        // Keep both channels in phase. Opposite-polarity channels correctly
+        // cancel when downmixed to mono and would make this an ineffective test.
+        stereo[i * 2 + 1] = s;
     }
 
     const QString path = QDir(temp.path()).filePath(QStringLiteral("tone.wav"));
@@ -48,7 +52,8 @@ int main(int argc, char *argv[])
             ++failures;
         }
         if (decoded.monoSamples.size() != frames) {
-            std::fprintf(stderr, "frame count mismatch %d\n", decoded.monoSamples.size());
+            std::fprintf(stderr, "frame count mismatch %lld\n",
+                         static_cast<long long>(decoded.monoSamples.size()));
             ++failures;
         }
         float energy = 0.0f;
@@ -81,6 +86,30 @@ int main(int argc, char *argv[])
     if (AudioFileDecoder::decodeFile(QStringLiteral("x.flac"), &unsupported, &error)) {
         std::fprintf(stderr, "flac should be unsupported\n");
         ++failures;
+    }
+
+    // A PCM container with an unsupported bit depth must be rejected instead
+    // of being reported as successfully decoded silence.
+    const QString invalidDepthPath = QDir(temp.path()).filePath(QStringLiteral("invalid-depth.wav"));
+    QFile validFile(path);
+    if (!validFile.open(QIODevice::ReadOnly)) {
+        std::fprintf(stderr, "could not reopen valid fixture\n");
+        ++failures;
+    } else {
+        QByteArray invalidBytes = validFile.readAll();
+        qToLittleEndian<quint16>(20, reinterpret_cast<uchar *>(invalidBytes.data() + 34));
+        QFile invalidFile(invalidDepthPath);
+        if (!invalidFile.open(QIODevice::WriteOnly) || invalidFile.write(invalidBytes) != invalidBytes.size()) {
+            std::fprintf(stderr, "could not write invalid-depth fixture\n");
+            ++failures;
+        } else {
+            invalidFile.close();
+            WavDecodeResult invalidDepth;
+            if (WavDecoder::decodeFile(invalidDepthPath, &invalidDepth, &error)) {
+                std::fprintf(stderr, "unsupported PCM bit depth should fail\n");
+                ++failures;
+            }
+        }
     }
 
     if (failures == 0) {

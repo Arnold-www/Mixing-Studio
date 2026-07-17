@@ -5,6 +5,9 @@ import MixingStudio
 
 Item {
     id: root
+    // Do NOT use anchors.fill when this is a Layout child — that escapes the
+    // layout cell and paints the playhead over sibling rows (e.g. Loop).
+    // Parent (or Layout) sizes this item; we clip all plot drawing.
     clip: true
 
     property bool playing: false

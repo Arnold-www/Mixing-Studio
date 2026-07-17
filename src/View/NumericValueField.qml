@@ -19,7 +19,7 @@ TextField {
     color: "#ffffff"
     selectedTextColor: "#0a0c10"
     selectionColor: "#5dcea8"
-    font.family: "Consolas"
+    font.family: Qt.platform.os === "osx" ? "Menlo" : "Consolas"
     font.pixelSize: 11
     horizontalAlignment: TextInput.AlignHCenter
     selectByMouse: true

@@ -5,6 +5,7 @@ import MixingStudio
 
 Item {
     id: root
+    readonly property color axisTextColor: "#6a7588"
     // Sized by Layout parent — do not anchors.fill outer drawer (overlaps header).
     clip: true
 
@@ -58,7 +59,7 @@ Item {
             text: root.playing ? "realtime · 60 FPS" : "idle"
             color: root.playing ? "#5dcea8" : "#A0A0A0"
             font.pixelSize: 11
-            font.family: "Consolas"
+            font.family: Qt.platform.os === "osx" ? "Menlo" : "Consolas"
             anchors.right: root.showCloseButton ? closeButton.left : parent.right
             anchors.rightMargin: root.showCloseButton ? 10 : 4
             anchors.verticalCenter: parent.verticalCenter
@@ -190,7 +191,7 @@ Item {
                 ctx.strokeStyle = "rgba(148, 163, 184, 0.28)"
                 ctx.strokeRect(left, top, plotW, plotH)
 
-                ctx.fillStyle = Theme.textMuted
+                ctx.fillStyle = root.axisTextColor
                 ctx.font = "10px sans-serif"
                 ctx.textAlign = "center"
                 ctx.textBaseline = "top"

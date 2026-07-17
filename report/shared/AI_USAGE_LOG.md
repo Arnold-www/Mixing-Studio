@@ -21,6 +21,7 @@
 | 2026-07-16 | 彭 | 阶段 5 / WAV 导出与清单 | Cursor Grok | AI 主导实现，人工验收；待张审核 | WAV 导出验收、DSP 补强、架构清单 | `WavExporter`、`exportMixToWav`、Export 按钮、`test_wav_export`、`ARCHITECTURE_CHECKLIST` | UI 导出默认 3s | 见 TEST_AND_TOOLCHAIN 阶段 5 | 待提交 |
 | 2026-07-16 | 彭 | 真实音频 / 本地导入 | Cursor Grok | AI 主导实现，人工验收；待张审核 | FileDialog + WAV 解码 + QAudioSink + EQ/Comp UI | `WavDecoder`、`MixAudioDevice`、`importLocalFile`、轨 FX UI；CTest 8/8 | 安装 Qt Multimedia；Demo Track 保留占位 | CTest 8/8；validate 29/29 | 待提交 |
 | 2026-07-16 | 彭 | Loop/样例/Mock/MP3 | Cursor Grok | AI 主导实现，人工验收；待张审核 | 补齐四项主线缺口并支持 MP3 | Loop UI、recent 扫描、samples、mockValidationMode、AudioFileDecoder | 样例随 POST_BUILD 拷贝 | 见本轮 CTest | 待提交 |
+| 2026-07-17 | B | 后期分支 Code Review、调试与测试补强 | Codex | AI 辅助审查/生成测试/定位缺陷，成员 B 确认范围、配置环境并复核结论 | 详审 A 后期分支，尽可能完成单元之外的构建、启动、E2E、样例和 QML 检查 | 定位音频格式、WAV、脚本、QML、SQLite、工程覆盖问题；新增 `app_smoke` 与 `audio_pipeline_e2e`；整理交叉测试证据 | B 明确不修改中期报告；安装 `qtmultimedia`；确认 Computer Use 不适合后改用可重复的 offscreen 启动测试；保留真实 EQ 风险结论 | macOS 完整构建通过；CTest 11/11；QML lint 完成；`git diff --check` 通过 | 待提交 |
 
 ## 采用模式示例
 

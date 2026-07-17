@@ -111,7 +111,7 @@ Rectangle {
         Label {
             text: bar.playbackTimeText
             color: "#ffffff"
-            font.family: "Consolas"
+            font.family: Qt.platform.os === "osx" ? "Menlo" : "Consolas"
             font.pixelSize: 13
             Layout.preferredWidth: 120
         }

@@ -122,6 +122,12 @@ add_custom_command(TARGET MixingStudio POST_BUILD
 
 enable_testing()
 
+add_test(NAME app_smoke COMMAND MixingStudio --smoke-test)
+set_tests_properties(app_smoke PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;MIXING_STUDIO_FORCE_TIMER_CLOCK=1"
+    TIMEOUT 10
+)
+
 add_executable(test_dsp_processor
     tests/test_dsp_processor.cpp
     src/DSP/DspProcessor.cpp
@@ -371,3 +377,28 @@ set_tests_properties(ui_binder PROPERTIES
 set_property(TEST ui_binder APPEND PROPERTY ENVIRONMENT "MIXINGSTUDIO_UI_HEADLESS=1")
 set_property(TEST ui_binder APPEND PROPERTY ENVIRONMENT "MIXINGSTUDIO_UI_PLAY_MS=3000")
 
+add_executable(test_audio_pipeline_e2e
+    tests/test_audio_pipeline_e2e.cpp
+    ${MIXING_STUDIO_MODEL_SOURCES}
+    ${MIXING_STUDIO_DSP_SOURCES}
+)
+
+set_target_properties(test_audio_pipeline_e2e PROPERTIES AUTOMOC ON)
+
+target_include_directories(test_audio_pipeline_e2e
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_compile_definitions(test_audio_pipeline_e2e
+    PRIVATE MIXING_STUDIO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
+target_link_libraries(test_audio_pipeline_e2e
+    PRIVATE
+        Qt6::Core
+        Qt6::Sql
+        Qt6::Multimedia
+)
+
+add_test(NAME audio_pipeline_e2e COMMAND test_audio_pipeline_e2e)

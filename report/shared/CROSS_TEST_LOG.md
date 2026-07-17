@@ -13,6 +13,7 @@
 | 2026-07-16 | 阶段 5：WAV 导出与交付清单 | 成员彭 | 待成员张审核 | `WavExporter`/`exportMixToWav`、Export UI、DSP 补强、架构清单；CTest 含 `wav_export` | 无 | 不适用 | 待审核通过后合入 | 待提交 |
 | 2026-07-16 | 真实音频链路 | 成员彭 | 待成员张审核 | `WavDecoder`、FileDialog 导入、`QAudioSink`、真实分析/导出、EQ/Comp UI；CTest 8/8 | 无 | 不适用 | 待审核 | 待提交 |
 | 2026-07-16 | 四项缺口 + MP3 | 成员彭 | 待成员张审核 | Loop UI、最近工程扫描、样例工程、Mock 模式、MP3 解码 | 无 | 不适用 | 待审核 | 待提交 |
+| 2026-07-17 | 后期集成分支独立 Review 与回归 | 成员 A（后期实现） | 成员 B | 相对 `origin/release/midterm-integration` 的完整差异；macOS 干净构建；CTest；应用/QML 启动冒烟；WAV→工程→导出 E2E；仓库样例工程 E2E；QML lint | 发现音频输出格式错配、测试脚本吞错/漏测、WAV 非法位深假成功、WAV fixture 假阳性、QML undefined 颜色、SQLite 连接释放、工程同名覆盖；另确认十段 EQ 只是整体增益代理 | 已修复可局部确认的缺陷并补回归；CTest **11/11**、完整构建、app smoke、样例工程导出与 `git diff --check` 通过；真实 EQ 缺口保留 | **有条件允许**：自动化主链通过；真实 EQ 不得按十段频率均衡验收，声卡/MP3/完整 GUI 点击仍需专项人工测试 | 待提交 |
 
 ## 检查重点
 

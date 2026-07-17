@@ -5,6 +5,7 @@
 #include <ViewModel/TrackViewModel.h>
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -327,7 +328,11 @@ void RealMixerViewModel::saveProject()
         return;
     }
 
-    const QString fileName = QStringLiteral("Project %1 tracks.json").arg(m_tracks.size());
+    // There is no current-project identity yet, so a track-count-based name
+    // silently overwrote unrelated sessions with the same number of tracks.
+    const QString fileName = QStringLiteral("Project %1 tracks %2.json")
+                                 .arg(m_tracks.size())
+                                 .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz")));
     const QString path = projectFilePath(fileName);
     if (path.trimmed().isEmpty()) {
         setStatusMessage(QStringLiteral("Missing engine or project path."));
