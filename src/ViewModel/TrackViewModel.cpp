@@ -5,7 +5,7 @@
 #include <utility>
 
 TrackViewModel::TrackViewModel(QString name, QObject *parent)
-    : ITrackViewModel(parent)
+    : QObject(parent)
     , m_name(std::move(name))
 {
     ensureEqBands();

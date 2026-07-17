@@ -8,6 +8,16 @@ Item {
     id: root
     anchors.fill: parent
 
+    property var projectNames: []
+    property int selectedIndex: -1
+
+    signal projectIndexSelected(int index)
+    signal restoreRequested()
+    signal deleteRequested()
+    signal loadSampleRequested()
+    signal saveRequested()
+    signal exportRequested()
+
     Material.theme: Material.Dark
     Material.accent: Material.Teal
     Material.background: "#12151c"
@@ -30,10 +40,11 @@ Item {
             Layout.fillHeight: true
             clip: true
             spacing: 4
-            model: mixerViewModel.recentProjectNames
+            model: root.projectNames
+            currentIndex: root.selectedIndex
             onCountChanged: {
-                if (currentIndex >= count)
-                    currentIndex = -1
+                if (root.selectedIndex >= count)
+                    root.projectIndexSelected(-1)
             }
 
             delegate: Rectangle {
@@ -41,7 +52,7 @@ Item {
                 width: ListView.view.width
                 height: 36
                 radius: 5
-                property bool selected: recentProjectList.currentIndex === index
+                property bool selected: root.selectedIndex === index
                 property bool hovered: rowMouse.containsMouse
 
                 color: {
@@ -70,7 +81,7 @@ Item {
                     id: rowMouse
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: recentProjectList.currentIndex = index
+                    onClicked: root.projectIndexSelected(index)
                 }
             }
         }
@@ -83,32 +94,32 @@ Item {
 
             ToolIconButton {
                 text: "Restore"
-                enabled: recentProjectList.currentIndex >= 0
+                enabled: root.selectedIndex >= 0
                 Layout.fillWidth: true
-                onClicked: mixerViewModel.restoreRecentProject(mixerViewModel.recentProjectNames[recentProjectList.currentIndex])
+                onClicked: root.restoreRequested()
             }
             ToolIconButton {
                 text: "Delete"
-                enabled: recentProjectList.currentIndex >= 0
+                enabled: root.selectedIndex >= 0
                 Layout.fillWidth: true
-                onClicked: mixerViewModel.deleteRecentProject(mixerViewModel.recentProjectNames[recentProjectList.currentIndex])
+                onClicked: root.deleteRequested()
             }
             ToolIconButton {
                 text: "Load Sample"
                 primary: true
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
-                onClicked: mixerViewModel.loadSampleProject()
+                onClicked: root.loadSampleRequested()
             }
             ToolIconButton {
                 text: "Save"
                 Layout.fillWidth: true
-                onClicked: mixerViewModel.saveProject()
+                onClicked: root.saveRequested()
             }
             ToolIconButton {
                 text: "Export WAV"
                 Layout.fillWidth: true
-                onClicked: mixerViewModel.exportMix()
+                onClicked: root.exportRequested()
             }
         }
     }

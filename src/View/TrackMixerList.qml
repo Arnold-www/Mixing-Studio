@@ -10,6 +10,14 @@ Rectangle {
     border.color: "#2a3140"
     radius: 6
 
+    property var tracks
+    property int selectedTrackIndex: -1
+    property bool anySolo: false
+
+    signal trackSelected(int index)
+    signal clearAutomationRequested()
+    signal deleteTrackRequested()
+
     Material.theme: Material.Dark
     Material.accent: Material.Teal
     Material.background: "#12151c"
@@ -35,8 +43,8 @@ Rectangle {
                 font.pixelSize: 14
             }
             Label {
-                text: mixerViewModel.tracks && mixerViewModel.tracks.length
-                      ? (mixerViewModel.tracks.length + " channel" + (mixerViewModel.tracks.length > 1 ? "s" : ""))
+                text: mixer.tracks && mixer.tracks.length
+                      ? (mixer.tracks.length + " channel" + (mixer.tracks.length > 1 ? "s" : ""))
                       : "no channels"
                 color: "#c5cede"
                 font.pixelSize: 12
@@ -44,16 +52,16 @@ Rectangle {
             }
             ToolIconButton {
                 text: "Clear Auto"
-                enabled: mixerViewModel.selectedTrackIndex >= 0
-                onClicked: mixerViewModel.clearAutomation()
+                enabled: mixer.selectedTrackIndex >= 0
+                onClicked: mixer.clearAutomationRequested()
             }
             ToolIconButton {
                 text: "Delete"
-                enabled: mixerViewModel.selectedTrackIndex >= 0
-                onClicked: mixerViewModel.deleteSelectedTrack()
+                enabled: mixer.selectedTrackIndex >= 0
+                onClicked: mixer.deleteTrackRequested()
             }
             Label {
-                text: mixerViewModel.anySolo ? "Solo on" : ""
+                text: mixer.anySolo ? "Solo on" : ""
                 color: "#ff8a8a"
                 font.pixelSize: 12
             }
@@ -66,8 +74,8 @@ Rectangle {
             clip: true
             spacing: 10
             orientation: ListView.Vertical
-            model: mixerViewModel.tracks
-            currentIndex: mixerViewModel.selectedTrackIndex
+            model: mixer.tracks
+            currentIndex: mixer.selectedTrackIndex
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
             delegate: Rectangle {
@@ -76,7 +84,7 @@ Rectangle {
                 radius: 6
                 readonly property var trackVm: modelData
                 readonly property bool hasTrack: trackVm !== null && trackVm !== undefined
-                readonly property bool selected: index === mixerViewModel.selectedTrackIndex
+                readonly property bool selected: index === mixer.selectedTrackIndex
                 readonly property bool loopOpen: hasTrack && trackVm.loopEnabled
                 property bool fxOpen: false
                 property bool hovered: rowHover.containsMouse
@@ -104,7 +112,7 @@ Rectangle {
                     z: -1
                     hoverEnabled: true
                     enabled: rowRoot.hasTrack
-                    onClicked: mixerViewModel.selectedTrackIndex = index
+                    onClicked: mixer.trackSelected(index)
                 }
 
                 ColumnLayout {
@@ -156,7 +164,7 @@ Rectangle {
                                             return
                                         rowRoot.fxOpen = !rowRoot.fxOpen
                                         trackVm.fxBypass = !rowRoot.fxOpen
-                                        mixerViewModel.selectedTrackIndex = index
+                                        mixer.trackSelected(index)
                                     }
                                 }
                                 ClipLoopToggle {
@@ -167,7 +175,7 @@ Rectangle {
                                         if (!rowRoot.hasTrack)
                                             return
                                         trackVm.loopEnabled = !trackVm.loopEnabled
-                                        mixerViewModel.selectedTrackIndex = index
+                                        mixer.trackSelected(index)
                                     }
                                 }
                             }

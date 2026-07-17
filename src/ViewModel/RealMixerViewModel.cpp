@@ -1,7 +1,5 @@
 #include <ViewModel/RealMixerViewModel.h>
 
-#include <Command/MixerCommands.h>
-#include <Common/MixerTypes.h>
 #include <Model/AudioEngine.h>
 #include <Model/AudioTrack.h>
 #include <ViewModel/TrackViewModel.h>
@@ -10,7 +8,10 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QQmlListProperty>
 #include <QStandardPaths>
+#include <QStringList>
+#include <QUrl>
 #include <QVariantMap>
 #include <QtAlgorithms>
 
@@ -19,7 +20,7 @@
 #include <utility>
 
 RealMixerViewModel::RealMixerViewModel(AudioEngine *engine, QObject *parent)
-    : IMixerViewModel(parent)
+    : QObject(parent)
     , m_engine(engine)
 {
     Q_ASSERT(m_engine != nullptr);
@@ -28,14 +29,14 @@ RealMixerViewModel::RealMixerViewModel(AudioEngine *engine, QObject *parent)
     ensureAssetLibrary();
     refreshRecentProjectsFromDisk();
 
-    connect(m_engine, &AudioEngine::playbackStateChanged, this, &IMixerViewModel::playingChanged);
+    connect(m_engine, &AudioEngine::playbackStateChanged, this, &RealMixerViewModel::playingChanged);
     connect(m_engine, &AudioEngine::statusMessageChanged, this, &RealMixerViewModel::setStatusMessage);
-    connect(m_engine, &AudioEngine::positionChanged, this, &IMixerViewModel::playbackPositionChanged);
+    connect(m_engine, &AudioEngine::positionChanged, this, &RealMixerViewModel::playbackPositionChanged);
     connect(m_engine, &AudioEngine::durationChanged, this, [this]() {
         emit durationChanged();
         emit loopRangeChanged();
     });
-    connect(m_engine, &AudioEngine::loopRangeChanged, this, &IMixerViewModel::loopRangeChanged);
+    connect(m_engine, &AudioEngine::loopRangeChanged, this, &RealMixerViewModel::loopRangeChanged);
     connect(m_engine, &AudioEngine::masterVolumeChanged, this, [this]() {
         if (!m_engine) {
             return;
@@ -49,9 +50,18 @@ RealMixerViewModel::RealMixerViewModel(AudioEngine *engine, QObject *parent)
     refreshFilteredAssetNames();
 }
 
-QQmlListProperty<ITrackViewModel> RealMixerViewModel::tracks()
+QVariantList RealMixerViewModel::tracksAsObjects() const
 {
-    return QQmlListProperty<ITrackViewModel>(this, &m_tracks, &RealMixerViewModel::trackCount, &RealMixerViewModel::trackAt);
+    QVariantList list;
+    for (TrackViewModel *track : m_tracks) {
+        list.append(QVariant::fromValue(static_cast<QObject *>(track)));
+    }
+    return list;
+}
+
+QQmlListProperty<TrackViewModel> RealMixerViewModel::tracks()
+{
+    return QQmlListProperty<TrackViewModel>(this, &m_tracks, &RealMixerViewModel::trackCount, &RealMixerViewModel::trackAt);
 }
 
 bool RealMixerViewModel::playing() const
@@ -115,16 +125,6 @@ float RealMixerViewModel::vuLevel() const
     return m_vuLevel;
 }
 
-float RealMixerViewModel::peakLevel() const
-{
-    return m_peakLevel;
-}
-
-bool RealMixerViewModel::clippingDetected() const
-{
-    return m_clippingDetected;
-}
-
 QString RealMixerViewModel::assetSearchText() const
 {
     return m_assetSearchText;
@@ -170,50 +170,88 @@ QVariantList RealMixerViewModel::automationPoints() const
     return m_automationPoints;
 }
 
+int RealMixerViewModel::selectedAssetIndex() const
+{
+    return m_selectedAssetIndex;
+}
+
+int RealMixerViewModel::selectedRecentProjectIndex() const
+{
+    return m_selectedRecentProjectIndex;
+}
+
 void RealMixerViewModel::importMockTrack()
 {
     if (!m_engine) {
         return;
     }
 
-    ImportMockTrackCommand command(m_engine, m_tracks.size());
-    command.execute();
-    addTrack(command.trackName());
+    const QString trackName = QStringLiteral("Track %1").arg(m_tracks.size() + 1);
+    m_engine->importTrack(trackName);
+    addTrack(trackName);
 }
 
 void RealMixerViewModel::importLocalFile(const QString &pathOrUrl)
 {
-    if (!m_engine) {
+    if (!m_engine || pathOrUrl.trimmed().isEmpty()) {
+        setStatusMessage(QStringLiteral("Choose a WAV file to import."));
         return;
     }
 
-    ImportLocalFileCommand command(m_engine, pathOrUrl);
-    command.execute();
-    setStatusMessage(command.status());
-    if (!command.ok()) {
+    QString localPath = pathOrUrl;
+    if (localPath.startsWith(QStringLiteral("file:"), Qt::CaseInsensitive)) {
+        localPath = QUrl(localPath).toLocalFile();
+    }
+
+    if (!m_engine->importAudioFile(localPath)) {
+        setStatusMessage(QStringLiteral("Failed to decode audio: %1").arg(localPath));
         return;
     }
 
-    addTrack(command.displayName());
+    m_engine->registerAsset(localPath);
+    const QString displayName = QFileInfo(localPath).fileName();
+    addTrack(displayName);
+    setStatusMessage(QStringLiteral("Imported local audio: %1").arg(displayName));
     refreshFilteredAssetNames();
 }
 
 void RealMixerViewModel::importAssetByName(const QString &name)
 {
     if (!m_engine) {
+        setStatusMessage(QStringLiteral("Audio engine unavailable."));
         return;
     }
 
-    ImportAssetCommand command(m_engine, name);
-    command.execute();
-    if (!command.ok()) {
-        setStatusMessage(command.status());
+    if (name.trimmed().isEmpty()) {
+        setStatusMessage(QStringLiteral("Select an asset before importing."));
         return;
     }
 
-    addTrack(command.assetName());
-    setStatusMessage(command.status());
+    QString path = m_engine->resolveAssetPath(name);
+    if (path.isEmpty()) {
+        path = name;
+    }
+
+    if (m_engine->importAudioFile(path)) {
+        addTrack(name);
+        setStatusMessage(QStringLiteral("Imported asset: %1").arg(name));
+        refreshFilteredAssetNames();
+        return;
+    }
+
+    m_engine->importTrack(name);
+    addTrack(name);
+    setStatusMessage(QStringLiteral("Imported placeholder asset: %1").arg(name));
     refreshFilteredAssetNames();
+}
+
+void RealMixerViewModel::importSelectedAsset()
+{
+    if (m_selectedAssetIndex < 0 || m_selectedAssetIndex >= m_filteredAssetNames.size()) {
+        setStatusMessage(QStringLiteral("Select an asset before importing."));
+        return;
+    }
+    importAssetByName(m_filteredAssetNames.at(m_selectedAssetIndex));
 }
 
 void RealMixerViewModel::restoreRecentProject(const QString &name)
@@ -222,22 +260,19 @@ void RealMixerViewModel::restoreRecentProject(const QString &name)
         return;
     }
 
-    LoadProjectCommand command(m_engine, projectFilePath(name));
-    command.execute();
-    setStatusMessage(command.status());
-    if (!command.ok()) {
+    const QString path = projectFilePath(name);
+    if (path.trimmed().isEmpty()) {
+        setStatusMessage(QStringLiteral("Select a recent project before restore."));
         return;
     }
 
-    rebuildTracksFromEngine();
-    m_loopEnabled = m_engine->loopEndMs() > m_engine->loopStartMs();
-    if (m_engine->durationMs() > 0) {
-        m_loopStartProgress = static_cast<float>(m_engine->loopStartMs()) / static_cast<float>(m_engine->durationMs());
-        m_loopEndProgress = static_cast<float>(m_engine->loopEndMs()) / static_cast<float>(m_engine->durationMs());
+    if (!m_engine->loadProject(path)) {
+        setStatusMessage(QStringLiteral("Failed to load project."));
+        return;
     }
-    emit loopRangeChanged();
-    pullAnalysisFromEngine();
-    refreshFilteredAssetNames();
+
+    setStatusMessage(QStringLiteral("Project loaded: %1").arg(path));
+    applyLoadedProjectState();
 }
 
 void RealMixerViewModel::deleteRecentProject(const QString &name)
@@ -266,6 +301,26 @@ void RealMixerViewModel::deleteRecentProject(const QString &name)
     setStatusMessage(QStringLiteral("Deleted project: %1").arg(name));
 }
 
+void RealMixerViewModel::restoreSelectedRecentProject()
+{
+    if (m_selectedRecentProjectIndex < 0
+        || m_selectedRecentProjectIndex >= m_recentProjectNames.size()) {
+        setStatusMessage(QStringLiteral("Select a recent project before restore."));
+        return;
+    }
+    restoreRecentProject(m_recentProjectNames.at(m_selectedRecentProjectIndex));
+}
+
+void RealMixerViewModel::deleteSelectedRecentProject()
+{
+    if (m_selectedRecentProjectIndex < 0
+        || m_selectedRecentProjectIndex >= m_recentProjectNames.size()) {
+        setStatusMessage(QStringLiteral("Select a project to delete."));
+        return;
+    }
+    deleteRecentProject(m_recentProjectNames.at(m_selectedRecentProjectIndex));
+}
+
 void RealMixerViewModel::saveProject()
 {
     if (!m_engine) {
@@ -274,15 +329,24 @@ void RealMixerViewModel::saveProject()
 
     const QString fileName = QStringLiteral("Project %1 tracks.json").arg(m_tracks.size());
     const QString path = projectFilePath(fileName);
-    QDir().mkpath(projectsDirectory());
-
-    SaveProjectCommand command(m_engine, path);
-    command.execute();
-    setStatusMessage(command.status());
-    if (!command.ok()) {
+    if (path.trimmed().isEmpty()) {
+        setStatusMessage(QStringLiteral("Missing engine or project path."));
         return;
     }
 
+    QDir().mkpath(projectsDirectory());
+
+    if (m_engine->trackCount() <= 0) {
+        setStatusMessage(QStringLiteral("Add at least one track before saving."));
+        return;
+    }
+
+    if (!m_engine->saveProject(path)) {
+        setStatusMessage(QStringLiteral("Failed to save project."));
+        return;
+    }
+
+    setStatusMessage(QStringLiteral("Project saved: %1").arg(path));
     m_recentProjectNames.removeAll(fileName);
     m_recentProjectNames.prepend(fileName);
     while (m_recentProjectNames.size() > 5) {
@@ -299,9 +363,17 @@ void RealMixerViewModel::exportMix()
 
     QDir().mkpath(exportsDirectory());
     const QString path = QDir(exportsDirectory()).filePath(QStringLiteral("mix_export.wav"));
-    ExportMixCommand command(m_engine, path, 3000);
-    command.execute();
-    setStatusMessage(command.status());
+    if (path.trimmed().isEmpty()) {
+        setStatusMessage(QStringLiteral("Missing engine or export path."));
+        return;
+    }
+
+    if (!m_engine->exportMixToWav(path, 3000)) {
+        setStatusMessage(QStringLiteral("Failed to export mix WAV."));
+        return;
+    }
+
+    setStatusMessage(QStringLiteral("Exported mix WAV: %1").arg(path));
 }
 
 void RealMixerViewModel::loadSampleProject()
@@ -316,37 +388,34 @@ void RealMixerViewModel::loadSampleProject()
         return;
     }
 
-    LoadProjectCommand command(m_engine, sampleJson);
-    command.execute();
-    setStatusMessage(command.status());
-    if (!command.ok()) {
+    if (!m_engine->loadProject(sampleJson)) {
+        setStatusMessage(QStringLiteral("Failed to load project."));
         return;
     }
 
-    rebuildTracksFromEngine();
-    m_loopEnabled = m_engine->loopEndMs() > m_engine->loopStartMs();
-    if (m_engine->durationMs() > 0) {
-        m_loopStartProgress = static_cast<float>(m_engine->loopStartMs()) / static_cast<float>(m_engine->durationMs());
-        m_loopEndProgress = static_cast<float>(m_engine->loopEndMs()) / static_cast<float>(m_engine->durationMs());
-    }
-    emit loopRangeChanged();
-    pullAnalysisFromEngine();
-    refreshFilteredAssetNames();
+    setStatusMessage(QStringLiteral("Project loaded: %1").arg(sampleJson));
+    applyLoadedProjectState();
 }
 
 void RealMixerViewModel::play()
 {
-    PlayCommand(m_engine).execute();
+    if (m_engine) {
+        m_engine->play();
+    }
 }
 
 void RealMixerViewModel::pause()
 {
-    PauseCommand(m_engine).execute();
+    if (m_engine) {
+        m_engine->pause();
+    }
 }
 
 void RealMixerViewModel::stop()
 {
-    StopCommand(m_engine).execute();
+    if (m_engine) {
+        m_engine->stop();
+    }
 }
 
 void RealMixerViewModel::setMasterVolume(float volume)
@@ -355,9 +424,8 @@ void RealMixerViewModel::setMasterVolume(float volume)
         return;
     }
 
-    SetMasterVolumeCommand command(m_engine, volume);
-    command.execute();
-    const float clamped = command.clampedVolume();
+    const float clamped = std::clamp(volume, 0.0f, 1.0f);
+    m_engine->setMasterVolume(clamped);
     if (qFuzzyCompare(m_masterVolume, clamped)) {
         return;
     }
@@ -368,7 +436,12 @@ void RealMixerViewModel::setMasterVolume(float volume)
 
 void RealMixerViewModel::seekToProgress(float progress)
 {
-    SeekProgressCommand(m_engine, progress).execute();
+    if (!m_engine || m_engine->durationMs() <= 0) {
+        return;
+    }
+
+    const float clamped = std::clamp(progress, 0.0f, 1.0f);
+    m_engine->seek(static_cast<int>(clamped * m_engine->durationMs()));
 }
 
 void RealMixerViewModel::setAssetSearchText(const QString &text)
@@ -454,13 +527,13 @@ QString RealMixerViewModel::formatTime(int seconds) const
         .arg(remainingSeconds, 2, 10, QLatin1Char('0'));
 }
 
-qsizetype RealMixerViewModel::trackCount(QQmlListProperty<ITrackViewModel> *property)
+qsizetype RealMixerViewModel::trackCount(QQmlListProperty<TrackViewModel> *property)
 {
     const auto tracks = static_cast<QVector<TrackViewModel *> *>(property->data);
     return tracks->size();
 }
 
-ITrackViewModel *RealMixerViewModel::trackAt(QQmlListProperty<ITrackViewModel> *property, qsizetype index)
+TrackViewModel *RealMixerViewModel::trackAt(QQmlListProperty<TrackViewModel> *property, qsizetype index)
 {
     const auto tracks = static_cast<QVector<TrackViewModel *> *>(property->data);
     return tracks->at(index);
@@ -589,7 +662,7 @@ void RealMixerViewModel::syncTrackToEngine(int index)
     params.loopEnabled = track->loopEnabled();
     params.loopStart = track->loopStartProgress();
     params.loopEnd = track->loopEndProgress();
-    ApplyTrackDspCommand(m_engine, index, params).execute();
+    applyTrackDspToEngine(index, params);
 }
 
 void RealMixerViewModel::syncAllTracksToEngine()
@@ -598,28 +671,44 @@ void RealMixerViewModel::syncAllTracksToEngine()
         return;
     }
 
-    QVector<TrackDspParams> params;
-    params.reserve(m_tracks.size());
-    for (const TrackViewModel *track : std::as_const(m_tracks)) {
-        TrackDspParams item;
-        item.volume = track->volume();
-        item.pan = track->pan();
-        item.playbackRate = track->playbackRate();
-        item.muted = track->muted();
-        item.solo = track->solo();
-        item.eqLowDb = track->eqLowDb();
-        item.eqMidDb = track->eqMidDb();
-        item.eqHighDb = track->eqHighDb();
-        item.eqBands = track->eqBands();
-        item.compThreshold = track->compThreshold();
-        item.compRatio = track->compRatio();
-        item.fxBypass = track->fxBypass();
-        item.loopEnabled = track->loopEnabled();
-        item.loopStart = track->loopStartProgress();
-        item.loopEnd = track->loopEndProgress();
-        params.append(item);
+    for (int i = 0; i < m_tracks.size(); ++i) {
+        syncTrackToEngine(i);
     }
-    ApplyAllTrackDspCommand(m_engine, std::move(params)).execute();
+}
+
+void RealMixerViewModel::applyTrackDspToEngine(int index, const TrackDspParams &params)
+{
+    if (!m_engine) {
+        return;
+    }
+
+    m_engine->setTrackVolume(index, params.volume);
+    m_engine->setTrackPan(index, params.pan);
+    m_engine->setTrackPlaybackRate(index, params.playbackRate);
+    m_engine->setTrackMuted(index, params.muted);
+    m_engine->setTrackSolo(index, params.solo);
+    if (!params.eqBands.isEmpty()) {
+        m_engine->setTrackEqBands(index, params.eqBands);
+    } else {
+        m_engine->setTrackEq(index, params.eqLowDb, params.eqMidDb, params.eqHighDb);
+    }
+    m_engine->setTrackCompressor(index, params.compThreshold, params.compRatio);
+    m_engine->setTrackFxBypass(index, params.fxBypass);
+    m_engine->setTrackLoopEnabled(index, params.loopEnabled);
+    m_engine->setTrackLoopRange(index, params.loopStart, params.loopEnd);
+}
+
+void RealMixerViewModel::applyLoadedProjectState()
+{
+    rebuildTracksFromEngine();
+    m_loopEnabled = m_engine->loopEndMs() > m_engine->loopStartMs();
+    if (m_engine->durationMs() > 0) {
+        m_loopStartProgress = static_cast<float>(m_engine->loopStartMs()) / static_cast<float>(m_engine->durationMs());
+        m_loopEndProgress = static_cast<float>(m_engine->loopEndMs()) / static_cast<float>(m_engine->durationMs());
+    }
+    emit loopRangeChanged();
+    pullAnalysisFromEngine();
+    refreshFilteredAssetNames();
 }
 
 void RealMixerViewModel::pullAnalysisFromEngine()
@@ -746,6 +835,9 @@ void RealMixerViewModel::refreshFilteredAssetNames()
 
     m_filteredAssetNames = filtered;
     emit filteredAssetNamesChanged();
+    if (m_selectedAssetIndex >= m_filteredAssetNames.size()) {
+        setSelectedAssetIndex(-1);
+    }
 }
 
 void RealMixerViewModel::ensureAssetLibrary()
@@ -788,6 +880,26 @@ void RealMixerViewModel::setSelectedTrackIndex(int index)
     m_selectedTrackIndex = clamped;
     emit selectedTrackIndexChanged();
     refreshAutomationPoints();
+}
+
+void RealMixerViewModel::setSelectedAssetIndex(int index)
+{
+    const int clamped = (index < 0 || index >= m_filteredAssetNames.size()) ? -1 : index;
+    if (m_selectedAssetIndex == clamped) {
+        return;
+    }
+    m_selectedAssetIndex = clamped;
+    emit selectedAssetIndexChanged();
+}
+
+void RealMixerViewModel::setSelectedRecentProjectIndex(int index)
+{
+    const int clamped = (index < 0 || index >= m_recentProjectNames.size()) ? -1 : index;
+    if (m_selectedRecentProjectIndex == clamped) {
+        return;
+    }
+    m_selectedRecentProjectIndex = clamped;
+    emit selectedRecentProjectIndexChanged();
 }
 
 void RealMixerViewModel::refreshAutomationPoints()
@@ -896,6 +1008,7 @@ void RealMixerViewModel::refreshRecentProjectsFromDisk()
         QDir().mkpath(projectsDirectory());
         m_recentProjectNames.clear();
         emit recentProjectNamesChanged();
+        setSelectedRecentProjectIndex(-1);
         return;
     }
 
@@ -913,6 +1026,9 @@ void RealMixerViewModel::refreshRecentProjectsFromDisk()
     }
     m_recentProjectNames = names;
     emit recentProjectNamesChanged();
+    if (m_selectedRecentProjectIndex >= m_recentProjectNames.size()) {
+        setSelectedRecentProjectIndex(-1);
+    }
 }
 
 void RealMixerViewModel::applyLoopToEngine()

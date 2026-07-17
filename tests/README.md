@@ -9,13 +9,15 @@
 | `project_store` | `test_project_store.cpp` | JSON 工程保存/加载（主音量、轨参、Loop、位置） |
 | `asset_library` | `test_asset_library.cpp` | SQLite upsert、搜索、最近列表 |
 | `common_types` | `test_common_types.cpp` | Common `planSolo` 等 |
-| `commands` | `test_commands.cpp` | Command 层 Play/Pause/Import/Save/Load |
+| `viewmodel_commands` | `test_viewmodel_commands.cpp` | ViewModel slots：Import/Play/Pause/MasterVolume |
+| `ui_binder` | `test_ui_binder.cpp` | UI 自动化演示：导入 `demo_tone` → Demo 加轨 → Spectrum/Library → Master 键盘 70% → Song Loop → Seek → Play/Pause/Stop → Save → Mock → Projects → 关闭。CTest 默认 headless + `PLAY_MS=3000`；本地看窗口直接跑 exe（`MIXINGSTUDIO_UI_STEP_MS` / `MIXINGSTUDIO_UI_PLAY_MS` 可调） |
 | `wav_export` | `test_wav_export.cpp` | RIFF 头、`exportMixToWav` 短时混音导出 |
 | `wav_decoder` | `test_wav_decoder.cpp` | WAV round-trip；`AudioFileDecoder` 路由 |
 
 ```powershell
+.\scripts\run_tests.ps1
 .\scripts\run_tests.ps1 -WithApp
 .\scripts\validate_feature.ps1
 ```
 
-当前应通过：`dsp_processor`、`audio_engine`、`project_store`、`asset_library`、`common_types`、`commands`、`wav_export`、`wav_decoder`。
+当前应通过：`dsp_processor`、`audio_engine`、`project_store`、`asset_library`、`common_types`、`viewmodel_commands`、`ui_binder`、`wav_export`、`wav_decoder`。

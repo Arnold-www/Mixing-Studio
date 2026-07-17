@@ -5,10 +5,16 @@ import MixingStudio
 
 Item {
     id: root
-    // Do NOT use anchors.fill when this is a Layout child — that escapes the
-    // layout cell and paints the playhead over sibling rows (e.g. Loop).
-    // Parent (or Layout) sizes this item; we clip all plot drawing.
     clip: true
+
+    property bool playing: false
+    property real playbackProgress: 0
+    property var waveformPoints: []
+    property var automationPoints: []
+    property int selectedTrackIndex: -1
+
+    signal addAutomationRequested(real progress, real value)
+    signal moveAutomationRequested(int pointIndex, real progress, real value)
 
     Item {
         id: plotArea
@@ -25,12 +31,12 @@ Item {
             property var displayPoints: []
 
             function syncDisplayPoints() {
-                var src = mixerViewModel.waveformPoints
+                var src = root.waveformPoints
                 if (!src || src.length === 0) {
                     displayPoints = []
                     return
                 }
-                var alpha = mixerViewModel.playing ? 0.36 : 1.0
+                var alpha = root.playing ? 0.36 : 1.0
                 var next = new Array(src.length)
                 for (var i = 0; i < src.length; ++i) {
                     var prev = (displayPoints && displayPoints.length === src.length) ? displayPoints[i] : src[i]
@@ -151,7 +157,7 @@ Item {
                         ctx.stroke()
                     }
 
-                    var autoPts = mixerViewModel.automationPoints
+                    var autoPts = root.automationPoints
                     if (autoPts && autoPts.length > 0) {
                         ctx.strokeStyle = Theme.autoLine
                         ctx.lineWidth = 2
@@ -180,25 +186,25 @@ Item {
                 }
                 onWidthChanged: schedulePaint()
                 onHeightChanged: schedulePaint()
+            }
 
-                Connections {
-                    target: mixerViewModel
-                    function onWaveformPointsChanged() {
-                        plotArea.syncDisplayPoints()
-                        waveformCanvas.schedulePaint()
-                    }
-                    function onAutomationPointsChanged() { waveformCanvas.schedulePaint() }
-                    function onSelectedTrackIndexChanged() { waveformCanvas.schedulePaint() }
-                    function onPlayingChanged() {
-                        plotArea.syncDisplayPoints()
-                        waveformCanvas.schedulePaint()
-                    }
+            Connections {
+                target: root
+                function onWaveformPointsChanged() {
+                    plotArea.syncDisplayPoints()
+                    waveformCanvas.schedulePaint()
+                }
+                function onAutomationPointsChanged() { waveformCanvas.schedulePaint() }
+                function onSelectedTrackIndexChanged() { waveformCanvas.schedulePaint() }
+                function onPlayingChanged() {
+                    plotArea.syncDisplayPoints()
+                    waveformCanvas.schedulePaint()
                 }
             }
 
             Timer {
                 interval: 16
-                running: mixerViewModel.playing
+                running: root.playing
                 repeat: true
                 onTriggered: {
                     plotArea.syncDisplayPoints()
@@ -207,7 +213,7 @@ Item {
             }
 
             Rectangle {
-                x: plotArea.leftPad + mixerViewModel.playbackProgress * plotArea.plotWidth - 1
+                x: plotArea.leftPad + root.playbackProgress * plotArea.plotWidth - 1
                 y: plotArea.topPad
                 width: 2
                 height: plotArea.plotHeight
@@ -223,7 +229,7 @@ Item {
                 property int dragIndex: -1
 
                 function hitIndex(mx, my) {
-                    var pts = mixerViewModel.automationPoints
+                    var pts = root.automationPoints
                     for (var i = 0; i < pts.length; ++i) {
                         var ax = pts[i].progress * width
                         var ay = (1.0 - pts[i].value) * height
@@ -236,20 +242,20 @@ Item {
                 }
 
                 onPressed: function(mouse) {
-                    if (mixerViewModel.selectedTrackIndex < 0)
+                    if (root.selectedTrackIndex < 0)
                         return
                     dragIndex = hitIndex(mouse.x, mouse.y)
                     if (dragIndex < 0) {
-                        mixerViewModel.addAutomationPoint(
+                        root.addAutomationRequested(
                                     Math.max(0, Math.min(1, mouse.x / Math.max(1, width))),
                                     Math.max(0, Math.min(1, 1.0 - mouse.y / Math.max(1, height))))
-                        dragIndex = mixerViewModel.automationPoints.length - 1
+                        dragIndex = root.automationPoints.length - 1
                     }
                 }
                 onPositionChanged: function(mouse) {
                     if (dragIndex < 0)
                         return
-                    mixerViewModel.moveAutomationPoint(
+                    root.moveAutomationRequested(
                                 dragIndex,
                                 Math.max(0, Math.min(1, mouse.x / Math.max(1, width))),
                                 Math.max(0, Math.min(1, 1.0 - mouse.y / Math.max(1, height))))

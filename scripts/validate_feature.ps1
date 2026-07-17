@@ -43,10 +43,9 @@ $results += Add-Result `
 $results += Add-Result `
     -Name "No headers under src" `
     -Passed (-not (Get-ChildItem -Path "src" -Recurse -Filter "*.h" -ErrorAction SilentlyContinue)) `
-    -Detail "Headers should live under include/Common, Model, DSP, App, Command, ViewModel."
+    -Detail "Headers should live under include/Common, Model, DSP, App, ViewModel."
 
 $requiredHeaders = @(
-    "include/Common/ICommandBase.h",
     "include/Common/MixerTypes.h",
     "include/DSP/DspProcessor.h",
     "include/DSP/DspAnalysis.h",
@@ -56,13 +55,6 @@ $requiredHeaders = @(
     "include/Model/WavDecoder.h",
     "include/Model/AudioFileDecoder.h",
     "include/App/MixingStudioApp.h",
-    "include/Command/ICommand.h",
-    "include/Command/PlaybackCommands.h",
-    "include/Command/ProjectCommands.h",
-    "include/Command/TrackDspCommands.h",
-    "include/Command/MixerCommands.h",
-    "include/ViewModel/IMixerViewModel.h",
-    "include/ViewModel/ITrackViewModel.h",
     "include/ViewModel/RealMixerViewModel.h",
     "include/ViewModel/TrackViewModel.h"
 )
@@ -79,19 +71,48 @@ $results += Add-Result `
     -Passed (-not (Test-PathExists "include/App/MixerApp.h")) `
     -Detail "include/App/MixerApp.h should not exist"
 
+$legacyCommandFiles = @(
+    "include/Command/ICommand.h",
+    "include/Command/PlaybackCommands.h",
+    "include/Command/ProjectCommands.h",
+    "include/Command/TrackDspCommands.h",
+    "include/Command/MixerCommands.h",
+    "include/Common/ICommandBase.h",
+    "src/Command/PlaybackCommands.cpp",
+    "src/Command/ProjectCommands.cpp",
+    "src/Command/TrackDspCommands.cpp"
+)
+$legacyCommandPresent = @($legacyCommandFiles | Where-Object { Test-PathExists $_ })
+$results += Add-Result `
+    -Name "Legacy Command layer removed" `
+    -Passed ($legacyCommandPresent.Count -eq 0) `
+    -Detail ($(if ($legacyCommandPresent.Count -eq 0) { "Command layer replaced by ViewModel slots" } else { ($legacyCommandPresent -join "; ") }))
+
 $qmlFiles = @(Get-ChildItem -Path "src/View" -Recurse -Include "*.qml" -ErrorAction SilentlyContinue)
 $qmlBoundaryViolations = @()
 foreach ($file in $qmlFiles) {
     $content = Get-Content -LiteralPath $file.FullName -Raw
-    if ($content -match "AudioEngine|DspProcessor|MixerApp|RealMixerViewModel|ICommand|PlayCommand|src/Model|src/DSP|src/App|src/Command") {
+    if ($content -cmatch "AudioEngine|DspProcessor|MixerApp|RealMixerViewModel|\bICommand\b|\bPlayCommand\b|src/Model|src/DSP|src/App|src/Command") {
         $qmlBoundaryViolations += $file.FullName
     }
 }
 
 $results += Add-Result `
-    -Name "QML does not access Model/DSP/App/Command/RealVM" `
+    -Name "QML does not access Model/DSP/App/RealVM" `
     -Passed ($qmlBoundaryViolations.Count -eq 0) `
     -Detail (($qmlBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
+
+$pureViewViolations = @()
+foreach ($file in $qmlFiles) {
+    $content = Get-Content -LiteralPath $file.FullName -Raw
+    if ($content -cmatch "mixerViewModel") {
+        $pureViewViolations += $file.FullName
+    }
+}
+$results += Add-Result `
+    -Name "All QML Views do not reference mixerViewModel" `
+    -Passed ($pureViewViolations.Count -eq 0) `
+    -Detail ($(if ($pureViewViolations.Count -eq 0) { "MixingStudioViewBinder wires pure View root" } else { ($pureViewViolations -join "; ") -replace [regex]::Escape($repoRoot), "." }))
 
 $modelDspFiles = @()
 $modelDspFiles += Get-ChildItem -Path "src/Model" -Recurse -Include "*.cpp" -ErrorAction SilentlyContinue
@@ -99,13 +120,13 @@ $modelDspFiles += Get-ChildItem -Path "src/DSP" -Recurse -Include "*.cpp" -Error
 $modelDspBoundaryViolations = @()
 foreach ($file in $modelDspFiles) {
     $content = Get-Content -LiteralPath $file.FullName -Raw
-    if ($content -match "ViewModel|MixingStudioApp|ICommand|QQml|QQuick|Main.qml|src/View|src/App|src/Command") {
+    if ($content -cmatch '#include\s*[<"][^>"]*(ViewModel|MixingStudioApp|ICommand|QQml|QQuick)|Main\.qml|src/View|src/App|src/Command') {
         $modelDspBoundaryViolations += $file.FullName
     }
 }
 
 $results += Add-Result `
-    -Name "Model/DSP do not depend on App/Command/View/ViewModel" `
+    -Name "Model/DSP do not depend on App/View/ViewModel" `
     -Passed ($modelDspBoundaryViolations.Count -eq 0) `
     -Detail (($modelDspBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
 
@@ -117,26 +138,123 @@ $appContent = ""
 if (Test-PathExists "src/App/MixingStudioApp.cpp") {
     $appContent = Get-Content -LiteralPath "src/App/MixingStudioApp.cpp" -Raw
 }
-$injectOk = ($appContent -match "IMixerViewModel") -and ($appContent -match "setContextProperty") -and ($appContent -notmatch "setContextProperty\([^\)]*RealMixerViewModel")
+$injectOk = ($appContent -match "RealMixerViewModel") `
+    -and ($appContent -match "MixingStudioViewBinder") `
+    -and ($appContent -match "\.bind\(") `
+    -and ($appContent -notmatch "setContextProperty") `
+    -and ($appContent -notmatch "setInitialProperties") `
+    -and ($appContent -notmatch "bindView")
 $results += Add-Result `
-    -Name "App injects IMixerViewModel interface pointer" `
+    -Name "App loads View and ViewBinder wires ViewModel" `
     -Passed $injectOk `
-    -Detail "MixingStudioApp must setContextProperty with IMixerViewModel*"
+    -Detail "App creates VM + load QML + MixingStudioViewBinder.bind(root); no ContextProperty / setInitialProperties / VM.bindView"
 
-$commandFiles = @()
-$commandFiles += Get-ChildItem -Path "src/Command" -Recurse -Include "*.cpp" -ErrorAction SilentlyContinue
-$commandBoundaryViolations = @()
-foreach ($file in $commandFiles) {
+$vmContent = ""
+if (Test-PathExists "src/ViewModel/RealMixerViewModel.cpp") {
+    $vmContent = Get-Content -LiteralPath "src/ViewModel/RealMixerViewModel.cpp" -Raw
+}
+$viewModelHeader = ""
+if (Test-PathExists "include/ViewModel/RealMixerViewModel.h") {
+    $viewModelHeader = Get-Content -LiteralPath "include/ViewModel/RealMixerViewModel.h" -Raw
+}
+$vmNoViewOk = ($viewModelHeader -notmatch "bindView") `
+    -and ($vmContent -notmatch "m_viewRoot|syncRoot|bindRootSignals|setRootProp") `
+    -and ($vmContent -notmatch "findChild") `
+    -and ($vmContent -notmatch "QQuickItem") `
+    -and ($viewModelHeader -notmatch "QQuickItem|m_viewRoot|bindView")
+$results += Add-Result `
+    -Name "ViewModel has no View root wiring (no bindView / m_viewRoot)" `
+    -Passed $vmNoViewOk `
+    -Detail "Connect/sync lives in MixingStudioViewBinder only"
+
+$binderGone = (-not (Test-PathExists "include/App/MixerViewBinder.h")) `
+    -and (-not (Test-PathExists "src/App/MixerViewBinder.cpp"))
+$appHeader = ""
+if (Test-PathExists "include/App/MixingStudioApp.h") {
+    $appHeader = Get-Content -LiteralPath "include/App/MixingStudioApp.h" -Raw
+}
+$binderInAppOk = $binderGone `
+    -and ($appHeader -match "class MixingStudioViewBinder") `
+    -and ($appContent -match "syncRoot|setProperty") `
+    -and ($appContent -notmatch "findChild") `
+    -and ($appContent -notmatch "QQuickItem")
+$results += Add-Result `
+    -Name "App ViewBinder lives in MixingStudioApp (no separate binder file)" `
+    -Passed $binderInAppOk `
+    -Detail "MixingStudioViewBinder in MixingStudioApp.h/.cpp; MixerViewBinder.* must not exist"
+
+$vmGuiViolations = @()
+$vmFiles = @()
+$vmFiles += Get-ChildItem -Path "include/ViewModel" -Recurse -Include "*.h" -ErrorAction SilentlyContinue
+$vmFiles += Get-ChildItem -Path "src/ViewModel" -Recurse -Include "*.cpp","*.h" -ErrorAction SilentlyContinue
+foreach ($file in $vmFiles) {
     $content = Get-Content -LiteralPath $file.FullName -Raw
-    if ($content -match "ViewModel|QQml|QQuick|Main.qml|src/View") {
-        $commandBoundaryViolations += $file.FullName
+    if ($content -cmatch "QQuickItem|findChild\s*<") {
+        $vmGuiViolations += $file.FullName
     }
 }
-
 $results += Add-Result `
-    -Name "Command does not depend on View/ViewModel" `
-    -Passed ($commandBoundaryViolations.Count -eq 0) `
-    -Detail (($commandBoundaryViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
+    -Name "ViewModel has no QQuickItem / findChild UI coupling" `
+    -Passed ($vmGuiViolations.Count -eq 0) `
+    -Detail (($vmGuiViolations -join "; ") -replace [regex]::Escape($repoRoot), ".")
+
+$vmSlotsOk = ($viewModelHeader -match "void play\(\)") `
+    -and ($viewModelHeader -match "void saveProject\(\)") `
+    -and ($viewModelHeader -match "Q_OBJECT") `
+    -and ($viewModelHeader -notmatch "IMixerViewModel")
+$results += Add-Result `
+    -Name "RealMixerViewModel exposes business slots (no I* interface)" `
+    -Passed $vmSlotsOk `
+    -Detail "Concrete RealMixerViewModel with slots; IMixer/ITrack removed"
+
+$selectionOk = ($viewModelHeader -match "selectedAssetIndex") `
+    -and ($viewModelHeader -match "selectedRecentProjectIndex")
+$results += Add-Result `
+    -Name "ViewModel exposes selection state" `
+    -Passed $selectionOk `
+    -Detail "selectedAssetIndex / selectedRecentProjectIndex"
+
+$ifaceGone = (-not (Test-PathExists "include/ViewModel/IMixerViewModel.h")) `
+    -and (-not (Test-PathExists "include/ViewModel/ITrackViewModel.h"))
+$results += Add-Result `
+    -Name "IMixerViewModel / ITrackViewModel removed" `
+    -Passed $ifaceGone `
+    -Detail "Interface headers must not exist; use concrete ViewModels"
+
+$qmlCommandViolations = @()
+foreach ($file in $qmlFiles) {
+    $content = Get-Content -LiteralPath $file.FullName -Raw
+    if ($content -match "mixerViewModel\.(play|pause|stop|saveProject|exportMix|loadSampleProject|importMockTrack|importLocalFile|importAssetByName|clearAutomation|deleteSelectedTrack)\s*\(") {
+        $qmlCommandViolations += $file.FullName
+    }
+}
+$results += Add-Result `
+    -Name "QML does not call ViewModel action slots" `
+    -Passed ($qmlCommandViolations.Count -eq 0) `
+    -Detail ($(if ($qmlCommandViolations.Count -eq 0) { "Root signals → Binder → ViewModel slots" } else { ($qmlCommandViolations -join "; ") -replace [regex]::Escape($repoRoot), "." }))
+
+$uiCommandGone = (-not (Test-PathExists "include/ViewModel/UiCommand.h")) `
+    -and (-not (Test-PathExists "src/ViewModel/UiCommand.cpp"))
+$results += Add-Result `
+    -Name "UiCommand layer removed" `
+    -Passed $uiCommandGone `
+    -Detail "include/ViewModel/UiCommand.h and src/ViewModel/UiCommand.cpp must not exist"
+
+$mainQml = ""
+if (Test-PathExists "src/View/Main.qml") {
+    $mainQml = Get-Content -LiteralPath "src/View/Main.qml" -Raw
+}
+$mainRootApiOk = ($mainQml -match 'objectName:\s*"mainWindow"') `
+    -and ($mainQml -match "signal playRequested") `
+    -and ($mainQml -match "property bool playing")
+$results += Add-Result `
+    -Name "Main.qml root exposes property/signal API for Binder" `
+    -Passed $mainRootApiOk `
+    -Detail "Root objectName mainWindow + inbound properties + outbound signals"
+$results += Add-Result `
+    -Name "UI automation test exists" `
+    -Passed ((Test-PathExists "tests/test_ui_binder.cpp") -and (Select-String -Path "CMakeLists.txt" -Pattern "ui_binder" -Quiet)) `
+    -Detail "tests/test_ui_binder.cpp + CTest name ui_binder"
 
 $requiredReportFiles = @(
     "report/shared/AI_USAGE_LOG.md",

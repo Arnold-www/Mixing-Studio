@@ -1,6 +1,9 @@
 #include <App/MixingStudioApp.h>
 
 #include <QQuickStyle>
+#include <QtQml/qqmlextensionplugin.h>
+
+Q_IMPORT_QML_PLUGIN(MixingStudioPlugin)
 
 int main(int argc, char *argv[])
 {

@@ -1,26 +1,15 @@
 #include <App/MixingStudioApp.h>
 
 #include <Model/AudioEngine.h>
-#include <ViewModel/IMixerViewModel.h>
 #include <ViewModel/RealMixerViewModel.h>
 
 #include <QColor>
+#include <QGuiApplication>
 #include <QPalette>
-#include <QQmlContext>
+#include <QQmlApplicationEngine>
 #include <QQuickStyle>
-
-MixingStudioApp::MixingStudioApp() = default;
-
-MixingStudioApp::~MixingStudioApp()
-{
-    // Owned by Qt parent chain / stack order in run(); nothing extra when run() owns locals.
-}
-
-void MixingStudioApp::bindViewModelToQml(QQmlApplicationEngine &engine)
-{
-    // Interface pointer only — QML must not depend on RealMixerViewModel.
-    engine.rootContext()->setContextProperty(QStringLiteral("mixerViewModel"), m_viewModel);
-}
+#include <QStringList>
+#include <QVariantList>
 
 namespace {
 
@@ -65,23 +54,199 @@ int MixingStudioApp::run(int argc, char *argv[])
     QQuickStyle::setStyle(QStringLiteral("Material"));
 
     QGuiApplication guiApp(argc, argv);
-    m_guiApp = &guiApp;
     applyNightPalette(guiApp);
 
     AudioEngine audioEngine;
-    m_engine = &audioEngine;
-
-    RealMixerViewModel realViewModel(&audioEngine);
-    m_realViewModel = &realViewModel;
-    m_viewModel = &realViewModel;
+    RealMixerViewModel viewModel(&audioEngine);
 
     QQmlApplicationEngine engine;
-    bindViewModelToQml(engine);
+    // Pure View: MixingStudioViewBinder wires root signals/properties <-> ViewModel.
     engine.loadFromModule("MixingStudio", "Main");
-
     if (engine.rootObjects().isEmpty()) {
         return -1;
     }
 
+    MixingStudioViewBinder binder(&viewModel);
+    binder.bind(engine.rootObjects().constFirst());
     return guiApp.exec();
+}
+
+MixingStudioViewBinder::MixingStudioViewBinder(RealMixerViewModel *viewModel, QObject *parent)
+    : QObject(parent)
+    , m_viewModel(viewModel)
+{
+    Q_ASSERT(m_viewModel != nullptr);
+}
+
+void MixingStudioViewBinder::bind(QObject *viewRoot)
+{
+    Q_ASSERT(viewRoot != nullptr);
+    m_viewRoot = viewRoot;
+
+    bindRootSignals();
+
+    const auto sync = [this]() { syncRoot(); };
+    connect(m_viewModel, &RealMixerViewModel::playingChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::playbackPositionChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::masterVolumeChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::analysisMetersChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::mockValidationModeChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::loopRangeChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::waveformPointsChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::automationPointsChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::selectedTrackIndexChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::spectrumLevelsChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::tracksChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::soloStateChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::statusMessageChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::assetSearchTextChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::filteredAssetNamesChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::selectedAssetIndexChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::recentProjectNamesChanged, this, sync);
+    connect(m_viewModel, &RealMixerViewModel::selectedRecentProjectIndexChanged, this, sync);
+
+    syncRoot();
+}
+
+void MixingStudioViewBinder::setRootProp(const char *name, const QVariant &value)
+{
+    if (m_viewRoot) {
+        m_viewRoot->setProperty(name, value);
+    }
+}
+
+void MixingStudioViewBinder::syncRoot()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+
+    setRootProp("playing", m_viewModel->playing());
+    setRootProp("playbackTimeText", m_viewModel->playbackTimeText());
+    setRootProp("masterVolume", m_viewModel->masterVolume());
+    setRootProp("vuLevel", m_viewModel->vuLevel());
+    setRootProp("mockValidationMode", m_viewModel->mockValidationMode());
+    setRootProp("playbackProgress", m_viewModel->playbackProgress());
+    setRootProp("loopEnabled", m_viewModel->loopEnabled());
+    setRootProp("loopStartProgress", m_viewModel->loopStartProgress());
+    setRootProp("loopEndProgress", m_viewModel->loopEndProgress());
+    setRootProp("waveformPoints", m_viewModel->waveformPoints());
+    setRootProp("automationPoints", m_viewModel->automationPoints());
+    setRootProp("spectrumLevels", m_viewModel->spectrumLevels());
+    setRootProp("tracks", m_viewModel->tracksAsObjects());
+    setRootProp("selectedTrackIndex", m_viewModel->selectedTrackIndex());
+    setRootProp("anySolo", m_viewModel->anySolo());
+    setRootProp("statusMessage", m_viewModel->statusMessage());
+    setRootProp("assetSearchText", m_viewModel->assetSearchText());
+    setRootProp("assetNames", QVariant::fromValue(m_viewModel->filteredAssetNames()));
+    setRootProp("selectedAssetIndex", m_viewModel->selectedAssetIndex());
+    setRootProp("projectNames", QVariant::fromValue(m_viewModel->recentProjectNames()));
+    setRootProp("selectedRecentProjectIndex", m_viewModel->selectedRecentProjectIndex());
+}
+
+void MixingStudioViewBinder::bindRootSignals()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+
+    connect(m_viewRoot, SIGNAL(demoRequested()), m_viewModel, SLOT(importMockTrack()));
+    connect(m_viewRoot, SIGNAL(sampleRequested()), m_viewModel, SLOT(loadSampleProject()));
+    connect(m_viewRoot, SIGNAL(saveRequested()), m_viewModel, SLOT(saveProject()));
+    connect(m_viewRoot, SIGNAL(exportRequested()), m_viewModel, SLOT(exportMix()));
+    connect(m_viewRoot, SIGNAL(playRequested()), m_viewModel, SLOT(play()));
+    connect(m_viewRoot, SIGNAL(pauseRequested()), m_viewModel, SLOT(pause()));
+    connect(m_viewRoot, SIGNAL(stopRequested()), m_viewModel, SLOT(stop()));
+    connect(m_viewRoot, SIGNAL(clearAutomationRequested()), m_viewModel, SLOT(clearAutomation()));
+    connect(m_viewRoot, SIGNAL(deleteTrackRequested()), m_viewModel, SLOT(deleteSelectedTrack()));
+    connect(m_viewRoot, SIGNAL(importAssetRequested()), m_viewModel, SLOT(importSelectedAsset()));
+    connect(m_viewRoot, SIGNAL(restoreProjectRequested()), m_viewModel, SLOT(restoreSelectedRecentProject()));
+    connect(m_viewRoot, SIGNAL(deleteProjectRequested()), m_viewModel, SLOT(deleteSelectedRecentProject()));
+
+    connect(m_viewRoot, SIGNAL(importFilesRequested(QVariant)), this, SLOT(onImportFilesRequested(QVariant)));
+    connect(m_viewRoot, SIGNAL(masterVolumeEdited(double)), this, SLOT(onMasterVolumeEdited(double)));
+    connect(m_viewRoot, SIGNAL(mockToggled()), this, SLOT(onMockToggled()));
+    connect(m_viewRoot, SIGNAL(seekRequested(double)), this, SLOT(onSeekRequested(double)));
+    connect(m_viewRoot, SIGNAL(loopRangeRequested(double, double)), this,
+            SLOT(onLoopRangeRequested(double, double)));
+    connect(m_viewRoot, SIGNAL(loopEnabledToggled()), this, SLOT(onLoopEnabledToggled()));
+    connect(m_viewRoot, SIGNAL(addAutomationRequested(double, double)), this,
+            SLOT(onAddAutomationRequested(double, double)));
+    connect(m_viewRoot, SIGNAL(moveAutomationRequested(int, double, double)), this,
+            SLOT(onMoveAutomationRequested(int, double, double)));
+    connect(m_viewRoot, SIGNAL(trackSelected(int)), this, SLOT(onTrackSelected(int)));
+    connect(m_viewRoot, SIGNAL(searchTextEdited(QString)), this, SLOT(onSearchTextEdited(QString)));
+    connect(m_viewRoot, SIGNAL(assetIndexSelected(int)), this, SLOT(onAssetIndexSelected(int)));
+    connect(m_viewRoot, SIGNAL(projectIndexSelected(int)), this, SLOT(onProjectIndexSelected(int)));
+}
+
+void MixingStudioViewBinder::onImportFilesRequested(const QVariant &urlsVar)
+{
+    QStringList paths;
+    if (urlsVar.canConvert<QStringList>()) {
+        paths = urlsVar.toStringList();
+    } else {
+        for (const QVariant &u : urlsVar.toList()) {
+            paths.append(u.toString());
+        }
+    }
+    for (const QString &path : paths) {
+        m_viewModel->importLocalFile(path);
+    }
+}
+
+void MixingStudioViewBinder::onMasterVolumeEdited(double value)
+{
+    m_viewModel->setMasterVolume(static_cast<float>(value));
+}
+
+void MixingStudioViewBinder::onMockToggled()
+{
+    m_viewModel->setMockValidationMode(!m_viewModel->mockValidationMode());
+}
+
+void MixingStudioViewBinder::onSeekRequested(double progress)
+{
+    m_viewModel->seekToProgress(static_cast<float>(progress));
+}
+
+void MixingStudioViewBinder::onLoopRangeRequested(double startProgress, double endProgress)
+{
+    m_viewModel->setLoopRangeByProgress(static_cast<float>(startProgress),
+                                        static_cast<float>(endProgress));
+}
+
+void MixingStudioViewBinder::onLoopEnabledToggled()
+{
+    m_viewModel->setLoopEnabled(!m_viewModel->loopEnabled());
+}
+
+void MixingStudioViewBinder::onAddAutomationRequested(double progress, double value)
+{
+    m_viewModel->addAutomationPoint(static_cast<float>(progress), static_cast<float>(value));
+}
+
+void MixingStudioViewBinder::onMoveAutomationRequested(int pointIndex, double progress, double value)
+{
+    m_viewModel->moveAutomationPoint(pointIndex, static_cast<float>(progress), static_cast<float>(value));
+}
+
+void MixingStudioViewBinder::onTrackSelected(int index)
+{
+    m_viewModel->setSelectedTrackIndex(index);
+}
+
+void MixingStudioViewBinder::onSearchTextEdited(const QString &text)
+{
+    m_viewModel->setAssetSearchText(text);
+}
+
+void MixingStudioViewBinder::onAssetIndexSelected(int index)
+{
+    m_viewModel->setSelectedAssetIndex(index);
+}
+
+void MixingStudioViewBinder::onProjectIndexSelected(int index)
+{
+    m_viewModel->setSelectedRecentProjectIndex(index);
 }

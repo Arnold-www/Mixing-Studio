@@ -9,6 +9,8 @@ Item {
     clip: true
 
     property bool showCloseButton: true
+    property bool playing: false
+    property var spectrumLevels: []
     signal closeRequested()
 
     // Unified header — title / subtitle left, status + Close right
@@ -53,8 +55,8 @@ Item {
 
         Label {
             id: statusText
-            text: mixerViewModel.playing ? "realtime · 60 FPS" : "idle"
-            color: mixerViewModel.playing ? "#5dcea8" : "#A0A0A0"
+            text: root.playing ? "realtime · 60 FPS" : "idle"
+            color: root.playing ? "#5dcea8" : "#A0A0A0"
             font.pixelSize: 11
             font.family: "Consolas"
             anchors.right: root.showCloseButton ? closeButton.left : parent.right
@@ -200,16 +202,16 @@ Item {
             }
 
             Component.onCompleted: {
-                pushLevels(mixerViewModel.spectrumLevels)
+                pushLevels(root.spectrumLevels)
                 requestPaint()
             }
             onWidthChanged: schedulePaint()
             onHeightChanged: schedulePaint()
 
             Connections {
-                target: mixerViewModel
+                target: root
                 function onSpectrumLevelsChanged() {
-                    spectrumCanvas.pushLevels(mixerViewModel.spectrumLevels)
+                    spectrumCanvas.pushLevels(root.spectrumLevels)
                     spectrumCanvas.schedulePaint()
                 }
                 function onPlayingChanged() { spectrumCanvas.schedulePaint() }
@@ -220,8 +222,8 @@ Item {
                 running: true
                 repeat: true
                 onTriggered: {
-                    if (mixerViewModel.playing) {
-                        spectrumCanvas.pushLevels(mixerViewModel.spectrumLevels)
+                    if (root.playing) {
+                        spectrumCanvas.pushLevels(root.spectrumLevels)
                     } else if (spectrumCanvas.smoothLevels.length > 0) {
                         var faded = []
                         for (var i = 0; i < spectrumCanvas.smoothLevels.length; ++i)

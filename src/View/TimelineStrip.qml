@@ -6,8 +6,17 @@ import MixingStudio
 // Seek + Song Loop — single RowLayout so I/O fields never overlay the groove.
 Item {
     id: root
-    implicitHeight: mixerViewModel.loopEnabled ? 56 : 40
+    implicitHeight: root.loopEnabled ? 56 : 40
     clip: true
+
+    property real playbackProgress: 0
+    property bool loopEnabled: false
+    property real loopStartProgress: 0
+    property real loopEndProgress: 1
+
+    signal seekRequested(real progress)
+    signal loopRangeRequested(real startProgress, real endProgress)
+    signal loopEnabledToggled()
 
     function clamp01(v) {
         return Math.max(0, Math.min(1, v))
@@ -34,13 +43,11 @@ Item {
             Layout.preferredHeight: parent.height
             Layout.minimumWidth: 120
             Layout.rightMargin: 8
-            // Allow I/O handles to paint fully; do not clip the Out marker.
             clip: false
 
-            readonly property real playP: mixerViewModel.playbackProgress
-            readonly property real inP: mixerViewModel.loopStartProgress
-            readonly property real outP: mixerViewModel.loopEndProgress
-            // Keep groove inset so O handle (12px) fits when outP === 1.
+            readonly property real playP: root.playbackProgress
+            readonly property real inP: root.loopStartProgress
+            readonly property real outP: root.loopEndProgress
             readonly property real handlePad: 8
 
             Rectangle {
@@ -50,7 +57,7 @@ Item {
                 anchors.right: parent.right
                 anchors.rightMargin: timeline.handlePad
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.verticalCenterOffset: mixerViewModel.loopEnabled ? -6 : 0
+                anchors.verticalCenterOffset: root.loopEnabled ? -6 : 0
                 height: 12
                 radius: 6
                 color: "#0c1016"
@@ -58,7 +65,7 @@ Item {
                 clip: true
 
                 Rectangle {
-                    visible: mixerViewModel.loopEnabled
+                    visible: root.loopEnabled
                     x: groove.width * timeline.inP
                     width: Math.max(2, groove.width * (timeline.outP - timeline.inP))
                     height: parent.height
@@ -89,7 +96,7 @@ Item {
                 anchors.right: groove.right
                 anchors.top: groove.bottom
                 height: 20
-                visible: mixerViewModel.loopEnabled
+                visible: root.loopEnabled
                 z: 4
 
                 Rectangle {
@@ -116,7 +123,7 @@ Item {
                             if (!pressed)
                                 return
                             var p = root.clamp01((parent.x + 6) / Math.max(1, parent.parent.width))
-                            mixerViewModel.setLoopRangeByProgress(p, Math.max(p + 0.02, timeline.outP))
+                            root.loopRangeRequested(p, Math.max(p + 0.02, timeline.outP))
                         }
                     }
                 }
@@ -145,13 +152,14 @@ Item {
                             if (!pressed)
                                 return
                             var p = root.clamp01((parent.x + 6) / Math.max(1, parent.parent.width))
-                            mixerViewModel.setLoopRangeByProgress(Math.min(timeline.inP, p - 0.02), p)
+                            root.loopRangeRequested(Math.min(timeline.inP, p - 0.02), p)
                         }
                     }
                 }
             }
 
             MouseArea {
+                objectName: "seekArea"
                 anchors.left: groove.left
                 anchors.right: groove.right
                 anchors.verticalCenter: groove.verticalCenter
@@ -159,48 +167,47 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 z: 2
                 onPressed: function(mouse) {
-                    mixerViewModel.seekToProgress(root.clamp01(mouse.x / Math.max(1, width)))
+                    root.seekRequested(root.clamp01(mouse.x / Math.max(1, width)))
                 }
                 onPositionChanged: function(mouse) {
                     if (pressed)
-                        mixerViewModel.seekToProgress(root.clamp01(mouse.x / Math.max(1, width)))
+                        root.seekRequested(root.clamp01(mouse.x / Math.max(1, width)))
                 }
             }
         }
 
         NumericValueField {
-            visible: mixerViewModel.loopEnabled
+            visible: root.loopEnabled
             Layout.preferredWidth: 40
             Layout.maximumWidth: 40
             Layout.alignment: Qt.AlignVCenter
             from: 0.0; to: 1.0; decimals: 0; percentScale: true
-            value: mixerViewModel.loopStartProgress
+            value: root.loopStartProgress
             onValueEdited: function(v) {
-                mixerViewModel.setLoopRangeByProgress(
-                    v, Math.max(v + 0.02, mixerViewModel.loopEndProgress))
+                root.loopRangeRequested(v, Math.max(v + 0.02, root.loopEndProgress))
             }
         }
         NumericValueField {
-            visible: mixerViewModel.loopEnabled
+            visible: root.loopEnabled
             Layout.preferredWidth: 40
             Layout.maximumWidth: 40
             Layout.alignment: Qt.AlignVCenter
             from: 0.0; to: 1.0; decimals: 0; percentScale: true
-            value: mixerViewModel.loopEndProgress
+            value: root.loopEndProgress
             onValueEdited: function(v) {
-                mixerViewModel.setLoopRangeByProgress(
-                    Math.min(mixerViewModel.loopStartProgress, v - 0.02), v)
+                root.loopRangeRequested(Math.min(root.loopStartProgress, v - 0.02), v)
             }
         }
 
         ToolIconButton {
+            objectName: "songLoopButton"
             text: "Song Loop"
             implicitWidth: 84
             Layout.preferredWidth: 84
             Layout.alignment: Qt.AlignVCenter
-            toggled: mixerViewModel.loopEnabled
-            primary: mixerViewModel.loopEnabled
-            onClicked: mixerViewModel.loopEnabled = !mixerViewModel.loopEnabled
+            toggled: root.loopEnabled
+            primary: root.loopEnabled
+            onClicked: root.loopEnabledToggled()
         }
     }
 }
