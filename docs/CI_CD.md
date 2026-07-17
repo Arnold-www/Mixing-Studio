@@ -37,3 +37,5 @@ cmake --build build-ci --config Release --parallel 2
 ctest --test-dir build-ci -C Release --output-on-failure
 cmake --install build-ci --config Release --prefix stage
 ```
+
+Release workflow 在 Linux 和 Windows 上把 `stage` 展开为绝对路径，以满足 Qt 部署工具对 `qt.conf` 路径的要求；macOS 保留相对路径，以便 Qt 正确重写应用包内的动态库路径。

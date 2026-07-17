@@ -60,7 +60,11 @@ jobs:
         id: archive
         shell: bash
         run: |
-          cmake --install build --config Release --prefix stage
+          stage_dir="stage"
+          if [[ "$RUNNER_OS" != "macOS" ]]; then
+            stage_dir="$GITHUB_WORKSPACE/stage"
+          fi
+          cmake --install build --config Release --prefix "$stage_dir"
           archive="Mixing-Studio-${GITHUB_REF_NAME}-${{ matrix.artifact }}.tar.gz"
           cmake -E tar czf "$archive" --format=gnutar stage
           echo "path=$archive" >> "$GITHUB_OUTPUT"
