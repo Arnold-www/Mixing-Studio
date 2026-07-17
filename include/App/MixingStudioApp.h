@@ -46,8 +46,17 @@ private slots:
 private:
     void bindRootSignals();
     void syncRoot();
+    void syncPlayback();
+    void syncMeters();
+    void syncWaveform();
+    void syncSpectrum();
+    void syncTransport();
+    void syncTracks();
+    void syncLibrary();
+    void syncProjects();
     void setRootProp(const char *name, const QVariant &value);
 
     RealMixerViewModel *m_viewModel = nullptr;
     QPointer<QObject> m_viewRoot;
+    qint64 m_lastTimeTextMs = -1;
 };

@@ -726,19 +726,21 @@ void RealMixerViewModel::pullAnalysisFromEngine()
     const QVector<float> spectrumSrc = m_engine->spectrumLevels();
     const bool playing = m_engine->isPlaying();
 
-    // EMA toward engine samples keeps the UI smooth at ~60 Hz without stair-steps.
-    const float waveAlpha = playing ? 0.42f : 1.0f;
-    const float specAttack = playing ? 0.62f : 1.0f;
-    const float specRelease = playing ? 0.28f : 1.0f;
-
+    // Overview waveform is rebuilt only when arrangement changes — copy once.
+    // Do not EMA / re-emit it every analysis tick while playing (that flooded the UI).
     QVariantList waveform;
     waveform.reserve(waveformSrc.size());
-    for (int i = 0; i < waveformSrc.size(); ++i) {
-        const float target = waveformSrc.at(i);
-        const float prev = (i < m_waveformPoints.size()) ? m_waveformPoints.at(i).toFloat() : target;
-        waveform.append(prev + (target - prev) * waveAlpha);
+    for (float sample : waveformSrc) {
+        waveform.append(sample);
+    }
+    if (m_waveformPoints != waveform) {
+        m_waveformPoints = waveform;
+        emit waveformPointsChanged();
     }
 
+    // Spectrum: light EMA at analysis rate (~60 Hz) for smooth realtime bars.
+    const float specAttack = playing ? 0.55f : 1.0f;
+    const float specRelease = playing ? 0.25f : 1.0f;
     QVariantList spectrum;
     spectrum.reserve(spectrumSrc.size());
     for (int i = 0; i < spectrumSrc.size(); ++i) {
@@ -748,14 +750,7 @@ void RealMixerViewModel::pullAnalysisFromEngine()
         spectrum.append(prev + (target - prev) * alpha);
     }
 
-    const bool waveformChanged = playing || m_waveformPoints != waveform;
     const bool spectrumChanged = playing || m_spectrumLevels != spectrum;
-
-    if (waveformChanged) {
-        m_waveformPoints = waveform;
-        emit waveformPointsChanged();
-    }
-
     if (spectrumChanged) {
         m_spectrumLevels = spectrum;
         emit spectrumLevelsChanged();

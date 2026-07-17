@@ -219,17 +219,11 @@ Item {
 
             Timer {
                 interval: 16
-                running: true
+                // Only animate while playing; Connections already push on level changes.
+                running: root.playing
                 repeat: true
                 onTriggered: {
-                    if (root.playing) {
-                        spectrumCanvas.pushLevels(root.spectrumLevels)
-                    } else if (spectrumCanvas.smoothLevels.length > 0) {
-                        var faded = []
-                        for (var i = 0; i < spectrumCanvas.smoothLevels.length; ++i)
-                            faded.push(spectrumCanvas.smoothLevels[i] * 0.90)
-                        spectrumCanvas.pushLevels(faded)
-                    }
+                    spectrumCanvas.pushLevels(root.spectrumLevels)
                     spectrumCanvas.schedulePaint()
                 }
             }

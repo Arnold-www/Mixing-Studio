@@ -197,13 +197,19 @@ Rectangle {
                                 Layout.alignment: Qt.AlignVCenter
                             }
                             Slider {
+                                id: volSlider
                                 from: 0.0; to: 1.0
-                                value: rowRoot.hasTrack ? trackVm.volume : 0
                                 onMoved: if (rowRoot.hasTrack) trackVm.volume = value
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 170
                                 Layout.maximumWidth: 200
                                 Layout.alignment: Qt.AlignVCenter
+                                Binding {
+                                    target: volSlider
+                                    property: "value"
+                                    value: rowRoot.hasTrack ? trackVm.volume : 0
+                                    when: !volSlider.pressed
+                                }
                             }
                             NumericValueField {
                                 Layout.preferredWidth: 40
@@ -238,13 +244,19 @@ Rectangle {
                                 Layout.alignment: Qt.AlignVCenter
                             }
                             Slider {
+                                id: panSlider
                                 from: -1.0; to: 1.0
-                                value: rowRoot.hasTrack ? trackVm.pan : 0
                                 onMoved: if (rowRoot.hasTrack) trackVm.pan = value
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 170
                                 Layout.maximumWidth: 200
                                 Layout.alignment: Qt.AlignVCenter
+                                Binding {
+                                    target: panSlider
+                                    property: "value"
+                                    value: rowRoot.hasTrack ? trackVm.pan : 0
+                                    when: !panSlider.pressed
+                                }
                             }
                             NumericValueField {
                                 Layout.preferredWidth: 40
@@ -273,13 +285,19 @@ Rectangle {
                                 Layout.alignment: Qt.AlignVCenter
                             }
                             Slider {
+                                id: speedSlider
                                 from: 0.5; to: 2.0
-                                value: rowRoot.hasTrack ? trackVm.playbackRate : 1.0
                                 onMoved: if (rowRoot.hasTrack) trackVm.playbackRate = value
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 170
                                 Layout.maximumWidth: 200
                                 Layout.alignment: Qt.AlignVCenter
+                                Binding {
+                                    target: speedSlider
+                                    property: "value"
+                                    value: rowRoot.hasTrack ? trackVm.playbackRate : 1.0
+                                    when: !speedSlider.pressed
+                                }
                             }
                             NumericValueField {
                                 Layout.preferredWidth: 44

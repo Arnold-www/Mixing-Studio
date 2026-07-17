@@ -4,6 +4,7 @@
 #include <ViewModel/RealMixerViewModel.h>
 
 #include <QColor>
+#include <QDateTime>
 #include <QGuiApplication>
 #include <QPalette>
 #include <QQmlApplicationEngine>
@@ -85,25 +86,44 @@ void MixingStudioViewBinder::bind(QObject *viewRoot)
 
     bindRootSignals();
 
-    const auto sync = [this]() { syncRoot(); };
-    connect(m_viewModel, &RealMixerViewModel::playingChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::playbackPositionChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::masterVolumeChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::analysisMetersChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::mockValidationModeChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::loopRangeChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::waveformPointsChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::automationPointsChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::selectedTrackIndexChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::spectrumLevelsChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::tracksChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::soloStateChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::statusMessageChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::assetSearchTextChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::filteredAssetNamesChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::selectedAssetIndexChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::recentProjectNamesChanged, this, sync);
-    connect(m_viewModel, &RealMixerViewModel::selectedRecentProjectIndexChanged, this, sync);
+    // Targeted sync: never dump the full root on meter/playhead ticks.
+    connect(m_viewModel, &RealMixerViewModel::playbackPositionChanged, this,
+            &MixingStudioViewBinder::syncPlayback);
+    connect(m_viewModel, &RealMixerViewModel::analysisMetersChanged, this,
+            &MixingStudioViewBinder::syncMeters);
+    connect(m_viewModel, &RealMixerViewModel::waveformPointsChanged, this,
+            &MixingStudioViewBinder::syncWaveform);
+    connect(m_viewModel, &RealMixerViewModel::spectrumLevelsChanged, this,
+            &MixingStudioViewBinder::syncSpectrum);
+    connect(m_viewModel, &RealMixerViewModel::playingChanged, this,
+            &MixingStudioViewBinder::syncTransport);
+    connect(m_viewModel, &RealMixerViewModel::masterVolumeChanged, this,
+            &MixingStudioViewBinder::syncTransport);
+    connect(m_viewModel, &RealMixerViewModel::mockValidationModeChanged, this,
+            &MixingStudioViewBinder::syncTransport);
+    connect(m_viewModel, &RealMixerViewModel::loopRangeChanged, this,
+            &MixingStudioViewBinder::syncTransport);
+    connect(m_viewModel, &RealMixerViewModel::statusMessageChanged, this,
+            &MixingStudioViewBinder::syncTransport);
+    connect(m_viewModel, &RealMixerViewModel::automationPointsChanged, this, [this]() {
+        setRootProp("automationPoints", m_viewModel->automationPoints());
+    });
+    connect(m_viewModel, &RealMixerViewModel::tracksChanged, this,
+            &MixingStudioViewBinder::syncTracks);
+    connect(m_viewModel, &RealMixerViewModel::soloStateChanged, this,
+            &MixingStudioViewBinder::syncTracks);
+    connect(m_viewModel, &RealMixerViewModel::selectedTrackIndexChanged, this,
+            &MixingStudioViewBinder::syncTracks);
+    connect(m_viewModel, &RealMixerViewModel::assetSearchTextChanged, this,
+            &MixingStudioViewBinder::syncLibrary);
+    connect(m_viewModel, &RealMixerViewModel::filteredAssetNamesChanged, this,
+            &MixingStudioViewBinder::syncLibrary);
+    connect(m_viewModel, &RealMixerViewModel::selectedAssetIndexChanged, this,
+            &MixingStudioViewBinder::syncLibrary);
+    connect(m_viewModel, &RealMixerViewModel::recentProjectNamesChanged, this,
+            &MixingStudioViewBinder::syncProjects);
+    connect(m_viewModel, &RealMixerViewModel::selectedRecentProjectIndexChanged, this,
+            &MixingStudioViewBinder::syncProjects);
 
     syncRoot();
 }
@@ -115,33 +135,106 @@ void MixingStudioViewBinder::setRootProp(const char *name, const QVariant &value
     }
 }
 
+void MixingStudioViewBinder::syncPlayback()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+
+    setRootProp("playbackProgress", m_viewModel->playbackProgress());
+
+    // Time label at ~10 Hz ? avoid allocating QString every 8 ms tick.
+    const qint64 tick = QDateTime::currentMSecsSinceEpoch();
+    if (m_lastTimeTextMs < 0 || (tick - m_lastTimeTextMs) >= 100) {
+        m_lastTimeTextMs = tick;
+        setRootProp("playbackTimeText", m_viewModel->playbackTimeText());
+    }
+}
+
+void MixingStudioViewBinder::syncMeters()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+    setRootProp("vuLevel", m_viewModel->vuLevel());
+}
+
+void MixingStudioViewBinder::syncWaveform()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+    setRootProp("waveformPoints", m_viewModel->waveformPoints());
+}
+
+void MixingStudioViewBinder::syncSpectrum()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+    setRootProp("spectrumLevels", m_viewModel->spectrumLevels());
+}
+
+void MixingStudioViewBinder::syncTransport()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+    setRootProp("playing", m_viewModel->playing());
+    setRootProp("masterVolume", m_viewModel->masterVolume());
+    setRootProp("mockValidationMode", m_viewModel->mockValidationMode());
+    setRootProp("loopEnabled", m_viewModel->loopEnabled());
+    setRootProp("loopStartProgress", m_viewModel->loopStartProgress());
+    setRootProp("loopEndProgress", m_viewModel->loopEndProgress());
+    setRootProp("statusMessage", m_viewModel->statusMessage());
+    setRootProp("playbackTimeText", m_viewModel->playbackTimeText());
+    m_lastTimeTextMs = QDateTime::currentMSecsSinceEpoch();
+}
+
+void MixingStudioViewBinder::syncTracks()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+    setRootProp("tracks", m_viewModel->tracksAsObjects());
+    setRootProp("selectedTrackIndex", m_viewModel->selectedTrackIndex());
+    setRootProp("anySolo", m_viewModel->anySolo());
+}
+
+void MixingStudioViewBinder::syncLibrary()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+    setRootProp("assetSearchText", m_viewModel->assetSearchText());
+    setRootProp("assetNames", QVariant::fromValue(m_viewModel->filteredAssetNames()));
+    setRootProp("selectedAssetIndex", m_viewModel->selectedAssetIndex());
+}
+
+void MixingStudioViewBinder::syncProjects()
+{
+    if (!m_viewRoot || !m_viewModel) {
+        return;
+    }
+    setRootProp("projectNames", QVariant::fromValue(m_viewModel->recentProjectNames()));
+    setRootProp("selectedRecentProjectIndex", m_viewModel->selectedRecentProjectIndex());
+}
+
 void MixingStudioViewBinder::syncRoot()
 {
     if (!m_viewRoot || !m_viewModel) {
         return;
     }
 
-    setRootProp("playing", m_viewModel->playing());
-    setRootProp("playbackTimeText", m_viewModel->playbackTimeText());
-    setRootProp("masterVolume", m_viewModel->masterVolume());
-    setRootProp("vuLevel", m_viewModel->vuLevel());
-    setRootProp("mockValidationMode", m_viewModel->mockValidationMode());
-    setRootProp("playbackProgress", m_viewModel->playbackProgress());
-    setRootProp("loopEnabled", m_viewModel->loopEnabled());
-    setRootProp("loopStartProgress", m_viewModel->loopStartProgress());
-    setRootProp("loopEndProgress", m_viewModel->loopEndProgress());
-    setRootProp("waveformPoints", m_viewModel->waveformPoints());
+    syncTransport();
+    syncPlayback();
+    syncMeters();
+    syncWaveform();
+    syncSpectrum();
     setRootProp("automationPoints", m_viewModel->automationPoints());
-    setRootProp("spectrumLevels", m_viewModel->spectrumLevels());
-    setRootProp("tracks", m_viewModel->tracksAsObjects());
-    setRootProp("selectedTrackIndex", m_viewModel->selectedTrackIndex());
-    setRootProp("anySolo", m_viewModel->anySolo());
-    setRootProp("statusMessage", m_viewModel->statusMessage());
-    setRootProp("assetSearchText", m_viewModel->assetSearchText());
-    setRootProp("assetNames", QVariant::fromValue(m_viewModel->filteredAssetNames()));
-    setRootProp("selectedAssetIndex", m_viewModel->selectedAssetIndex());
-    setRootProp("projectNames", QVariant::fromValue(m_viewModel->recentProjectNames()));
-    setRootProp("selectedRecentProjectIndex", m_viewModel->selectedRecentProjectIndex());
+    syncTracks();
+    syncLibrary();
+    syncProjects();
 }
 
 void MixingStudioViewBinder::bindRootSignals()

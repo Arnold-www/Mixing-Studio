@@ -28,28 +28,13 @@ Item {
             readonly property real bottomPad: 26
             readonly property real plotWidth: Math.max(1, width - leftPad - rightPad)
             readonly property real plotHeight: Math.max(1, height - topPad - bottomPad)
-            property var displayPoints: []
-
-            function syncDisplayPoints() {
-                var src = root.waveformPoints
-                if (!src || src.length === 0) {
-                    displayPoints = []
-                    return
-                }
-                var alpha = root.playing ? 0.36 : 1.0
-                var next = new Array(src.length)
-                for (var i = 0; i < src.length; ++i) {
-                    var prev = (displayPoints && displayPoints.length === src.length) ? displayPoints[i] : src[i]
-                    next[i] = prev + (src[i] - prev) * alpha
-                }
-                displayPoints = next
-            }
-
             Canvas {
                 id: waveformCanvas
                 anchors.fill: parent
+                // Waveform is static overview — paint on data/size change only.
+                // Playhead is a separate Rectangle so Seek stays smooth at ~120 Hz.
                 renderTarget: Canvas.FramebufferObject
-                renderStrategy: Canvas.Threaded
+                renderStrategy: Canvas.Cooperative
                 antialiasing: true
                 property bool paintPending: false
 
@@ -115,23 +100,20 @@ Item {
                     ctx.strokeStyle = Theme.border
                     ctx.strokeRect(left, top, plotWidth, plotHeight)
 
-                    var points = plotArea.displayPoints
+                    var points = root.waveformPoints
                     if (points && points.length > 1) {
                         ctx.beginPath()
                         var x0 = left
                         var y0 = midY - points[0] * plotHeight * 0.42
                         ctx.moveTo(x0, midY)
                         ctx.lineTo(x0, y0)
-                        for (var i = 0; i < points.length - 1; ++i) {
-                            var x1 = left + (i / (points.length - 1)) * plotWidth
-                            var x2 = left + ((i + 1) / (points.length - 1)) * plotWidth
-                            var y1 = midY - points[i] * plotHeight * 0.42
-                            var y2 = midY - points[i + 1] * plotHeight * 0.42
-                            ctx.quadraticCurveTo(x1, y1, (x1 + x2) / 2, (y1 + y2) / 2)
+                        // Linear segments — cheaper than quadratic curves, still realtime-smooth playhead.
+                        for (var i = 1; i < points.length; ++i) {
+                            var x = left + (i / (points.length - 1)) * plotWidth
+                            var y = midY - points[i] * plotHeight * 0.42
+                            ctx.lineTo(x, y)
                         }
                         var xLast = left + plotWidth
-                        var yLast = midY - points[points.length - 1] * plotHeight * 0.42
-                        ctx.quadraticCurveTo(xLast, yLast, xLast, yLast)
                         ctx.lineTo(xLast, midY)
                         ctx.closePath()
                         var fill = ctx.createLinearGradient(0, top, 0, top + plotHeight)
@@ -142,16 +124,13 @@ Item {
 
                         ctx.beginPath()
                         ctx.moveTo(x0, y0)
-                        for (var j = 0; j < points.length - 1; ++j) {
-                            var ax = left + (j / (points.length - 1)) * plotWidth
-                            var bx = left + ((j + 1) / (points.length - 1)) * plotWidth
-                            var ay = midY - points[j] * plotHeight * 0.42
-                            var by = midY - points[j + 1] * plotHeight * 0.42
-                            ctx.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2)
+                        for (var j = 1; j < points.length; ++j) {
+                            var sx = left + (j / (points.length - 1)) * plotWidth
+                            var sy = midY - points[j] * plotHeight * 0.42
+                            ctx.lineTo(sx, sy)
                         }
-                        ctx.quadraticCurveTo(xLast, yLast, xLast, yLast)
                         ctx.strokeStyle = Theme.waveStroke
-                        ctx.lineWidth = 2.4
+                        ctx.lineWidth = 2.0
                         ctx.lineJoin = "round"
                         ctx.lineCap = "round"
                         ctx.stroke()
@@ -180,36 +159,16 @@ Item {
                     }
                 }
 
-                Component.onCompleted: {
-                    plotArea.syncDisplayPoints()
-                    requestPaint()
-                }
+                Component.onCompleted: requestPaint()
                 onWidthChanged: schedulePaint()
                 onHeightChanged: schedulePaint()
             }
 
             Connections {
                 target: root
-                function onWaveformPointsChanged() {
-                    plotArea.syncDisplayPoints()
-                    waveformCanvas.schedulePaint()
-                }
+                function onWaveformPointsChanged() { waveformCanvas.schedulePaint() }
                 function onAutomationPointsChanged() { waveformCanvas.schedulePaint() }
                 function onSelectedTrackIndexChanged() { waveformCanvas.schedulePaint() }
-                function onPlayingChanged() {
-                    plotArea.syncDisplayPoints()
-                    waveformCanvas.schedulePaint()
-                }
-            }
-
-            Timer {
-                interval: 16
-                running: root.playing
-                repeat: true
-                onTriggered: {
-                    plotArea.syncDisplayPoints()
-                    waveformCanvas.schedulePaint()
-                }
             }
 
             Rectangle {

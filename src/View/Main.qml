@@ -23,7 +23,7 @@ ApplicationWindow {
     Material.foreground: "#e6ebf2"
     Material.elevation: 0
 
-    // --- Inbound UI state (Binder setProperty â†?ViewModel) ---
+    // --- Inbound UI state (Binder setProperty â†”ViewModel) ---
     property bool playing: false
     property string playbackTimeText: ""
     property real masterVolume: 1.0
@@ -52,7 +52,7 @@ ApplicationWindow {
     property var projectNames: []
     property int selectedRecentProjectIndex: -1
 
-    // --- Outbound user actions (Binder connect â†?ViewModel) ---
+    // --- Outbound user actions (Binder connect â†”ViewModel) ---
     signal importFilesRequested(var urls)
     signal demoRequested()
     signal sampleRequested()

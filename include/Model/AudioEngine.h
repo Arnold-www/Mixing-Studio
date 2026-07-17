@@ -163,8 +163,8 @@ private:
     QAudioFormat chooseOutputFormat(const QAudioDevice &device) const;
 
     static constexpr int kPlaybackTickMs = 16; // timer-clock fallback ~60 Hz
-    static constexpr int kMeterTickMs = 8; // ~120 Hz Seek / meters / playhead
-    static constexpr int kAnalysisEveryNMeters = 1; // VU + spectrum every tick
+    static constexpr int kMeterTickMs = 8; // ~120 Hz Seek / playhead
+    static constexpr int kAnalysisEveryNMeters = 2; // VU + spectrum ~60 Hz
     static constexpr int kPositionUiMinDeltaMs = 8;
     static constexpr qint64 kSmoothExtrapolateMaxUs = 40000; // 40ms cap
     static constexpr int kPlaceholderDurationMs = 3000;
