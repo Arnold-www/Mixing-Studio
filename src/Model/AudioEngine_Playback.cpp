@@ -9,49 +9,36 @@
 
 QAudioFormat AudioEngine::chooseOutputFormat(const QAudioDevice &device) const
 {
-    QAudioFormat format;
-    format.setSampleRate(m_outputSampleRate);
-    format.setChannelCount(2);
-    format.setSampleFormat(QAudioFormat::Int16);
+    const QAudioFormat preferred = device.preferredFormat();
+    const int preferredRate = preferred.sampleRate() > 0 ? preferred.sampleRate() : m_outputSampleRate;
+    const int preferredChannels = preferred.channelCount() > 0 ? preferred.channelCount() : 2;
 
-    if (device.isFormatSupported(format)) {
-        return format;
-    }
-
-    // Windows WASAPI often prefers Float; Int16 may fail isFormatSupported.
-    format.setSampleFormat(QAudioFormat::Float);
-    if (device.isFormatSupported(format)) {
-        return format;
-    }
-
-    QAudioFormat preferred = device.preferredFormat();
-    if (preferred.sampleRate() <= 0) {
-        preferred.setSampleRate(m_outputSampleRate);
-    }
-    if (preferred.channelCount() <= 0) {
-        preferred.setChannelCount(2);
-    }
-    if (preferred.sampleFormat() == QAudioFormat::Unknown) {
-        preferred.setSampleFormat(QAudioFormat::Float);
-    }
-
-    // Prefer stereo even when preferred is mono (Qt may convert).
-    if (preferred.channelCount() == 1) {
-        preferred.setChannelCount(2);
-        if (device.isFormatSupported(preferred)) {
-            return preferred;
+    // pullInterleavedPcm intentionally supports only these two formats. Never
+    // advertise a preferred Int32/UInt8 format and then write Int16 bytes into it.
+    const int rates[] = {m_outputSampleRate, preferredRate};
+    const int channels[] = {2, preferredChannels, 1};
+    const QAudioFormat::SampleFormat formats[] = {QAudioFormat::Int16, QAudioFormat::Float};
+    for (QAudioFormat::SampleFormat sampleFormat : formats) {
+        for (int rate : rates) {
+            for (int channelCount : channels) {
+                QAudioFormat candidate;
+                candidate.setSampleRate(rate);
+                candidate.setChannelCount(channelCount);
+                candidate.setSampleFormat(sampleFormat);
+                if (device.isFormatSupported(candidate)) {
+                    return candidate;
+                }
+            }
         }
-        preferred.setChannelCount(1);
     }
 
-    if (device.isFormatSupported(preferred)) {
-        return preferred;
-    }
-
-    // Last resort: force Int16 stereo at preferred rate; QAudioSink may still open.
-    preferred.setChannelCount(2);
-    preferred.setSampleFormat(QAudioFormat::Int16);
-    return preferred;
+    // QAudioSink will report an error if even this conservative format cannot
+    // be opened, at which point playback falls back to the timer clock.
+    QAudioFormat fallback;
+    fallback.setSampleRate(preferredRate);
+    fallback.setChannelCount(2);
+    fallback.setSampleFormat(QAudioFormat::Int16);
+    return fallback;
 }
 
 void AudioEngine::ensureAudioOutput()

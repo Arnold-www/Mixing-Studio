@@ -27,6 +27,9 @@ bool AssetLibrary::open(const QString &databasePath, QString *errorMessage)
         if (errorMessage) {
             *errorMessage = db.lastError().text();
         }
+        // Qt requires every handle to be released before removing a named
+        // connection, including the local handle created above.
+        db = QSqlDatabase();
         QSqlDatabase::removeDatabase(m_connectionName);
         return false;
     }
@@ -41,7 +44,8 @@ bool AssetLibrary::open(const QString &databasePath, QString *errorMessage)
 
 void AssetLibrary::close()
 {
-    if (!m_open) {
+    if (!QSqlDatabase::contains(m_connectionName)) {
+        m_open = false;
         return;
     }
 

@@ -301,7 +301,7 @@ Rectangle {
                             Label {
                                 text: rowRoot.hasTrack ? trackVm.meterText : "0%"
                                 color: "#ffffff"
-                                font.family: "Consolas"
+                                font.family: Qt.platform.os === "osx" ? "Menlo" : "Consolas"
                                 font.pixelSize: 12
                                 Layout.preferredWidth: 36
                                 Layout.alignment: Qt.AlignVCenter

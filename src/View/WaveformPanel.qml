@@ -5,6 +5,11 @@ import MixingStudio
 
 Item {
     id: root
+    readonly property color plotTextColor: "#6a7588"
+    readonly property color plotBorderColor: "#2a3140"
+    readonly property color waveformColor: "#5dcea8"
+    readonly property color automationColor: "#e0a45a"
+    readonly property color playheadColor: "#e07a5f"
     // Do NOT use anchors.fill when this is a Layout child — that escapes the
     // layout cell and paints the playhead over sibling rows (e.g. Loop).
     // Parent (or Layout) sizes this item; we clip all plot drawing.
@@ -75,7 +80,7 @@ Item {
 
                     ctx.strokeStyle = "rgba(80, 100, 120, 0.35)"
                     ctx.lineWidth = 1
-                    ctx.fillStyle = Theme.textMuted
+                    ctx.fillStyle = root.plotTextColor
                     ctx.font = "10px sans-serif"
                     ctx.textAlign = "right"
                     ctx.textBaseline = "middle"
@@ -106,7 +111,7 @@ Item {
                         ctx.fillText(timeLabels[t], tx, top + plotHeight + 6)
                     }
 
-                    ctx.strokeStyle = Theme.border
+                    ctx.strokeStyle = root.plotBorderColor
                     ctx.strokeRect(left, top, plotWidth, plotHeight)
 
                     var points = plotArea.displayPoints
@@ -144,7 +149,7 @@ Item {
                             ctx.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2)
                         }
                         ctx.quadraticCurveTo(xLast, yLast, xLast, yLast)
-                        ctx.strokeStyle = Theme.waveStroke
+                        ctx.strokeStyle = root.waveformColor
                         ctx.lineWidth = 2.4
                         ctx.lineJoin = "round"
                         ctx.lineCap = "round"
@@ -153,7 +158,7 @@ Item {
 
                     var autoPts = mixerViewModel.automationPoints
                     if (autoPts && autoPts.length > 0) {
-                        ctx.strokeStyle = Theme.autoLine
+                        ctx.strokeStyle = root.automationColor
                         ctx.lineWidth = 2
                         ctx.beginPath()
                         for (var p = 0; p < autoPts.length; ++p) {
@@ -164,7 +169,7 @@ Item {
                         }
                         ctx.stroke()
                         for (var q = 0; q < autoPts.length; ++q) {
-                            ctx.fillStyle = Theme.autoLine
+                            ctx.fillStyle = root.automationColor
                             ctx.beginPath()
                             ctx.arc(left + autoPts[q].progress * plotWidth,
                                     top + (1.0 - autoPts[q].value) * plotHeight,
@@ -211,7 +216,7 @@ Item {
                 y: plotArea.topPad
                 width: 2
                 height: plotArea.plotHeight
-                color: Theme.playhead
+                color: root.playheadColor
             }
 
             MouseArea {

@@ -7,7 +7,7 @@
 ### macOS（成员 B）
 
 - 操作系统：macOS 15.7.4
-- Qt 版本：Qt 6.11.1，通过 Homebrew `qtdeclarative` 安装，包含本项目需要的 Qt QML、Qt Quick、Qt Quick Controls 2。
+- Qt 版本：Qt 6.11.1；Homebrew `qtdeclarative` 提供 QML/Quick/Quick Controls，后期真实音频构建另安装 `qtmultimedia`。
 - CMake 版本：4.3.4
 - 编译器：Apple clang 17.0.0
 - 构建命令：
@@ -17,7 +17,7 @@ cmake -S . -B build-qt -DCMAKE_PREFIX_PATH=/opt/homebrew
 cmake --build build-qt
 ```
 
-- 说明：未安装完整 `qt` 元包；当前最小可用路径为 `brew install qtdeclarative`。该命令会安装 `qtbase`、`qtsvg` 等必要依赖。
+- 说明：未安装完整 `qt` 元包；本项目当前最小依赖安装为 `brew install qtdeclarative qtmultimedia`。CMake 前缀使用 `/opt/homebrew`。
 
 ### Windows（成员 A）
 
@@ -75,8 +75,32 @@ WITH_APP=1 ./scripts/run_tests.sh
 | 2026-07-16 | 架构检查 | 阶段 4 改绑后边界 | `.\scripts\validate_feature.ps1` | 通过，27/27 | 无 | `37f8b8c` |
 | 2026-07-16 | 单元测试 | 阶段 5 WAV 导出 / DSP 补强 | `.\scripts\run_tests.ps1 -WithApp` | 通过，7/7 | 无 | 待提交 |
 | 2026-07-16 | 架构检查 | 阶段 5 清单 + validate | `.\scripts\validate_feature.ps1` | 通过，28/28 | 无 | 待提交 |
+| 2026-07-17 | 独立 Code Review | 后期集成分支完整差异 | 静态审查 Model/DSP/Persistence/ViewModel/QML/CMake/脚本/测试 | 完成 | 发现 7 类可修复缺陷及十段 EQ 实现缺口 | 待提交 |
+| 2026-07-17 | 干净集成构建 | macOS Qt 6.11.1 + Multimedia | `cmake -S . -B build-review -DCMAKE_PREFIX_PATH=/opt/homebrew -DCMAKE_BUILD_TYPE=Debug`；`cmake --build build-review -j 6` | 通过 | 初次缺少 `Qt6Multimedia`；安装 `qtmultimedia` 后通过 | 环境配置 + 待提交修复 |
+| 2026-07-17 | 应用启动冒烟 | 完整 App/QML/ViewModel 初始化 | CTest `app_smoke`，offscreen 加载真实 QML 并运行事件循环 500ms | 通过 | 修复 Waveform/Spectrum undefined 颜色和 SQLite 连接告警 | 待提交 |
+| 2026-07-17 | 音频管线 E2E | WAV 导入、轨参、Clip/Song Loop、自动化、工程 round-trip、导出与再解码 | CTest `audio_pipeline_e2e` | 通过 | 原测试之间缺少跨模块真实数据闭环 | 待提交 |
+| 2026-07-17 | 仓库样例 E2E | `samples/demo_session.json` 与 4 个随仓 WAV | 加载样例工程、验证每轨 PCM、导出 1 秒并再解码检查能量 | 通过 | 无 | 待提交 |
+| 2026-07-17 | QML 静态检查 | 全部 QML | `cmake --build build-review --target all_qmllint` | 完成 | 发现并修复 2 处真实 missing-property；其余主要为 context property/unqualified 静态告警 | 待提交 |
+| 2026-07-17 | 全量自动化回归 | 应用 + 单元/组件/集成/E2E | `ctest --test-dir build-review --output-on-failure` | **通过，11/11** | 无失败 | 待提交 |
 
-## 最近一次 CTest 输出（阶段 5）
+## 最近一次 CTest 输出（后期 B 独立复测）
+
+```text
+ 1/11 Test  #1: app_smoke ........................ Passed
+ 2/11 Test  #2: dsp_processor .................... Passed
+ 3/11 Test  #3: audio_engine ..................... Passed
+ 4/11 Test  #4: project_store .................... Passed
+ 5/11 Test  #5: asset_library .................... Passed
+ 6/11 Test  #6: common_types ..................... Passed
+ 7/11 Test  #7: commands ......................... Passed
+ 8/11 Test  #8: wav_export ....................... Passed
+ 9/11 Test  #9: wav_decoder ...................... Passed
+10/11 Test #10: automation ....................... Passed
+11/11 Test #11: audio_pipeline_e2e ............... Passed
+100% tests passed, 0 tests failed out of 11
+```
+
+## 历史 CTest 输出（阶段 5）
 
 ```text
 1/7 Test #1: dsp_processor ....................   Passed

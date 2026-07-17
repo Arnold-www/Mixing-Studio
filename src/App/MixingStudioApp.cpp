@@ -8,6 +8,7 @@
 #include <QPalette>
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QTimer>
 
 MixingStudioApp::MixingStudioApp() = default;
 
@@ -81,6 +82,12 @@ int MixingStudioApp::run(int argc, char *argv[])
 
     if (engine.rootObjects().isEmpty()) {
         return -1;
+    }
+
+    // Exercise the real bootstrap and QML event loop in automated checks
+    // without leaving a window open indefinitely.
+    if (guiApp.arguments().contains(QStringLiteral("--smoke-test"))) {
+        QTimer::singleShot(500, &guiApp, &QCoreApplication::quit);
     }
 
     return guiApp.exec();
