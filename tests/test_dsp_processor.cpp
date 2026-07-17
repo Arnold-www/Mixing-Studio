@@ -1,8 +1,10 @@
+#include <DSP/DspAnalysis.h>
 #include <DSP/DspProcessor.h>
 
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <vector>
 
 namespace {
 
@@ -21,6 +23,16 @@ void expectTrue(bool condition, const char *message)
         std::cerr << message << '\n';
         std::exit(1);
     }
+}
+
+std::vector<float> makeSine(int samples, float amplitude)
+{
+    std::vector<float> data(static_cast<size_t>(samples));
+    for (int i = 0; i < samples; ++i) {
+        const float t = static_cast<float>(i) / static_cast<float>(samples);
+        data[static_cast<size_t>(i)] = amplitude * std::sin(2.0f * 3.14159265f * 4.0f * t);
+    }
+    return data;
 }
 
 } // namespace
@@ -67,6 +79,56 @@ int main()
 
     const StereoSample attenuated = DspProcessor::applyMasterChain(leftOnly, 0.5f);
     expectNear(attenuated.left, 0.4f, "Master volume should scale before limit");
+
+    // Stage 4 analysis
+    const std::vector<float> sine = makeSine(256, 0.5f);
+    const std::vector<float> waveform = DspAnalysis::downsampleWaveform(sine, 16);
+    expectTrue(static_cast<int>(waveform.size()) == 16, "Waveform should have requested bins");
+    expectTrue(DspAnalysis::detectPeak(sine) > 0.4f, "Sine peak should be near amplitude");
+    expectTrue(DspAnalysis::computeVuLevel(sine) > 0.2f, "Sine VU should be non-zero RMS");
+    expectTrue(!DspAnalysis::detectClipping(sine, 0.99f), "0.5 amplitude sine should not clip");
+
+    std::vector<float> hot = sine;
+    hot[10] = 1.0f;
+    expectTrue(DspAnalysis::detectClipping(hot, 0.99f), "Hot sample should trigger clipping");
+
+    const std::vector<float> spectrum = DspAnalysis::computeSpectrumBands(sine, 8);
+    expectTrue(static_cast<int>(spectrum.size()) == 8, "Spectrum should have requested bands");
+    float spectrumEnergy = 0.0f;
+    for (float band : spectrum) {
+        spectrumEnergy += band;
+    }
+    expectTrue(spectrumEnergy > 0.0f, "Spectrum energy should be positive for sine");
+
+    // Phase 5: end-to-end track path with compression enabled (non-bypass).
+    TrackProcessParams hotTrack;
+    hotTrack.volume = 1.0f;
+    hotTrack.pan = 0.0f;
+    hotTrack.audible = true;
+    hotTrack.fxBypass = false;
+    hotTrack.compThreshold = 0.2f;
+    hotTrack.compRatio = 4.0f;
+    const StereoSample hotOut = DspProcessor::processTrackSample(0.8f, hotTrack);
+    expectTrue(std::fabs(hotOut.left) < 0.8f, "Track compressor path should attenuate hot sample");
+
+    float bands[10] = {};
+    bands[2] = 6.0f;
+    const float graphicBoosted = DspProcessor::applyGraphicEq(0.2f, bands, 10);
+    expectTrue(graphicBoosted > 0.2f, "Graphic EQ boost should raise amplitude");
+    const float graphicFlat = DspProcessor::applyGraphicEq(0.2f, bands, 0);
+    expectNear(graphicFlat, 0.2f, "Empty graphic EQ should pass sample through");
+
+    TrackProcessParams graphicTrack;
+    graphicTrack.volume = 1.0f;
+    graphicTrack.pan = 0.0f;
+    graphicTrack.audible = true;
+    graphicTrack.fxBypass = false;
+    graphicTrack.useGraphicEq = true;
+    graphicTrack.eqBands[4] = 6.0f;
+    graphicTrack.compThreshold = 1.0f;
+    graphicTrack.compRatio = 1.0f;
+    const StereoSample graphicOut = DspProcessor::processTrackSample(0.25f, graphicTrack);
+    expectTrue(std::fabs(graphicOut.left) > 0.25f, "Graphic EQ track path should boost mid band");
 
     return 0;
 }

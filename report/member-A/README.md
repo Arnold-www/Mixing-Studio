@@ -2,13 +2,23 @@
 
 成员 A 主责：`Model / DSP / Persistence`。
 
+## 交付文档（后期集成）
+
+| 文档 | 说明 |
+|------|------|
+| [功能报告_后期集成与UI.md](./功能报告_后期集成与UI.md) | 已实现功能总览、行为约定、源码索引与已知限制 |
+| [使用说明_成员B测试指南.md](./使用说明_成员B测试指南.md) | macOS 启动 + 各 UI 组件作用说明与简要验收表 |
+
+交叉测试结果请回填 [report/shared/CROSS_TEST_LOG.md](../shared/CROSS_TEST_LOG.md)。
+
 ## 负责模块
 
 - `include/DSP/`、`src/DSP/`
 - `include/Model/`、`src/Model/`
 - 音频导入、多轨加载、播放状态、主音量等 Model 接口
 - 混音、Pan、Limiter 等 DSP 算法（按阶段逐步补齐）
-- 波形/VU/频谱数据、工程保存、WAV 导出（后续阶段）
+- 波形/VU/频谱数据、工程保存、WAV 导出
+- 真实 WAV 解码、`QAudioSink` 输出、本地 FileDialog 导入
 - `tests/` 单元测试与 `scripts/` 验证脚本
 
 ## 阶段记录模板
@@ -122,4 +132,21 @@
 - 成员 B 交叉测试结果：待 B 后续实现 EQ/Comp/Bypass 控件后再做 UI 交叉；当前可用单测验收 A 底层。
 - 对应提交：`7291c53`
 - 可放入报告的证据：`DspProcessor` 混音链、`AudioEngine::renderMixFrame`、扩展后的 CTest 输出、`tests/README.md` 阶段三测试计划。
+
+## 阶段 5：WAV 导出与交付清单
+
+- 日期：2026-07-16
+- 使用的大模型：Cursor Grok
+- 采用模式：AI 主导实现，人工验收；待队友审核。
+- 提示词摘要：实现阶段 5：WAV 导出验收、DSP 单测补强、底层架构检查清单与 A 侧记录。
+- AI 输出内容：
+  - `WavExporter` + `AudioEngine::exportMixToWav`（经 `renderMixFrame` 离线混音写 16-bit PCM WAV）
+  - `ExportMixCommand`、`IMixerViewModel::exportMix`、Library「Export WAV」
+  - `test_wav_export`；DSP mute/bypass/master clamp 补强
+  - `docs/ARCHITECTURE_CHECKLIST.md`
+- 人工修改内容：UI 导出默认 3 秒样例；完整时长走 Model API。
+- 自测结果：见 `report/shared/TEST_AND_TOOLCHAIN.md`（阶段 5）。
+- 成员交叉测试结果：待审核。
+- 对应提交：待提交
+- 可放入报告的证据：导出 WAV、`test_wav_export`、架构清单。
 

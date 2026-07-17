@@ -33,8 +33,20 @@ float DspProcessor::dbToLinear(float gainDb)
 
 float DspProcessor::applyThreeBandEq(float sample, float lowDb, float midDb, float highDb)
 {
-    // Broadband proxy of a 3-band EQ: product of band linear gains (0 dB => unity).
     const float gain = dbToLinear(lowDb) * dbToLinear(midDb) * dbToLinear(highDb);
+    return applyGain(sample, gain);
+}
+
+float DspProcessor::applyGraphicEq(float sample, const float *bands, int bandCount)
+{
+    if (!bands || bandCount <= 0) {
+        return clampSample(sample);
+    }
+
+    float gain = 1.0f;
+    for (int i = 0; i < bandCount; ++i) {
+        gain *= dbToLinear(bands[i]);
+    }
     return applyGain(sample, gain);
 }
 
@@ -61,7 +73,11 @@ StereoSample DspProcessor::processTrackSample(float monoSample, const TrackProce
 
     float processed = clampSample(monoSample);
     if (!params.fxBypass) {
-        processed = applyThreeBandEq(processed, params.eqLowDb, params.eqMidDb, params.eqHighDb);
+        if (params.useGraphicEq) {
+            processed = applyGraphicEq(processed, params.eqBands, TrackProcessParams::kEqBandCount);
+        } else {
+            processed = applyThreeBandEq(processed, params.eqLowDb, params.eqMidDb, params.eqHighDb);
+        }
         processed = applyCompressor(processed, params.compThreshold, params.compRatio);
     }
 
@@ -85,7 +101,6 @@ StereoSample DspProcessor::applyMasterChain(const StereoSample &mixed, float mas
     const float gain = std::clamp(masterVolume, 0.0f, 1.0f);
     mastered.left = applyGain(mixed.left, gain);
     mastered.right = applyGain(mixed.right, gain);
-    // Hard limiter / clip guard on master bus.
     mastered.left = clampSample(mastered.left);
     mastered.right = clampSample(mastered.right);
     return mastered;

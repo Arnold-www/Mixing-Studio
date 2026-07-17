@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "masterVolume": 0.85,
+  "positionMs": 0,
+  "durationMs": 6500,
+  "loopStartMs": 0,
+  "loopEndMs": 6400,
+  "tracks": [
+    {
+      "sourcePath": "kick.wav",
+      "displayName": "kick.wav",
+      "volume": 0.95,
+      "pan": 0.0,
+      "muted": false,
+      "solo": false,
+      "eqLowDb": 3.0,
+      "eqMidDb": 0.0,
+      "eqHighDb": -2.0,
+      "eqBands": [2.0, 3.0, 1.0, 0.0, 0.0, 0.0, -1.0, -2.0, -1.0, 0.0],
+      "compThreshold": 0.75,
+      "compRatio": 3.0,
+      "fxBypass": false,
+      "volumeAutomation": [
+        { "timeMs": 0, "value": 1.0 },
+        { "timeMs": 400, "value": 0.55 },
+        { "timeMs": 900, "value": 1.0 }
+      ]
+    },
+    {
+      "sourcePath": "bass_110.wav",
+      "displayName": "bass_110.wav",
+      "volume": 0.75,
+      "pan": -0.25,
+      "muted": false,
+      "solo": false,
+      "eqLowDb": 2.0,
+      "eqMidDb": -1.0,
+      "eqHighDb": 0.0,
+      "eqBands": [1.5, 2.0, 0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      "compThreshold": 0.7,
+      "compRatio": 4.0,
+      "fxBypass": false,
+      "volumeAutomation": []
+    },
+    {
+      "sourcePath": "pad_440.wav",
+      "displayName": "pad_440.wav",
+      "volume": 0.55,
+      "pan": 0.35,
+      "muted": false,
+      "solo": false,
+      "eqLowDb": -3.0,
+      "eqMidDb": 1.0,
+      "eqHighDb": 2.0,
+      "eqBands": [-2.0, -3.0, -1.0, 0.0, 1.0, 1.5, 2.0, 2.0, 1.0, 0.5],
+      "compThreshold": 0.8,
+      "compRatio": 2.5,
+      "fxBypass": false,
+      "volumeAutomation": [
+        { "timeMs": 0, "value": 0.4 },
+        { "timeMs": 2500, "value": 1.0 },
+        { "timeMs": 6000, "value": 0.6 }
+      ]
+    },
+    {
+      "sourcePath": "hihat.wav",
+      "displayName": "hihat.wav",
+      "volume": 0.45,
+      "pan": 0.15,
+      "muted": false,
+      "solo": false,
+      "eqLowDb": -6.0,
+      "eqMidDb": 0.0,
+      "eqHighDb": 4.0,
+      "eqBands": [-4.0, -6.0, -3.0, -1.0, 0.0, 1.0, 2.0, 4.0, 3.0, 2.0],
+      "compThreshold": 0.65,
+      "compRatio": 5.0,
+      "fxBypass": true,
+      "volumeAutomation": []
+    }
+  ]
+}

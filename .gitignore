@@ -17,3 +17,8 @@ out/
 *.mp3
 *.flac
 *.m4a
+# Keep demo/sample audio in-repo for B/macOS cross-test without regenerating.
+!samples/*.wav
+!samples/*.mp3
+samples/_download/
+samples/_synthetic_backup/

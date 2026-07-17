@@ -1,24 +1,14 @@
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
+#include <App/MixingStudioApp.h>
 
-#include <Model/AudioEngine.h>
-#include <ViewModel/MixerViewModel.h>
+#include <QQuickStyle>
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    // Before QGuiApplication: force Material so Controls never fall back to light Basic/Fusion.
+    qputenv("QT_QUICK_CONTROLS_STYLE", "Material");
+    qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark");
+    QQuickStyle::setStyle(QStringLiteral("Material"));
 
-    AudioEngine audioEngine;
-    MixerViewModel mixerViewModel(&audioEngine);
-
-    QQmlApplicationEngine engine;
-    engine.rootContext()->setContextProperty("mixerViewModel", &mixerViewModel);
-    engine.loadFromModule("MixingStudio", "Main");
-
-    if (engine.rootObjects().isEmpty()) {
-        return -1;
-    }
-
-    return app.exec();
+    MixingStudioApp app;
+    return app.run(argc, argv);
 }

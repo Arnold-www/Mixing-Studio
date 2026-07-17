@@ -1,14 +1,66 @@
 #include <Model/AudioEngine.h>
 
-#include <QFileInfo>
+#include <Model/AssetLibrary.h>
 
 #include <algorithm>
+#include <cmath>
+
+MixAudioDevice::MixAudioDevice(AudioEngine *engine, QObject *parent)
+    : QIODevice(parent)
+    , m_engine(engine)
+{
+}
+
+bool MixAudioDevice::isSequential() const
+{
+    return true;
+}
+
+qint64 MixAudioDevice::bytesAvailable() const
+{
+    // Pull-mode sink: always report data ready while open.
+    return static_cast<qint64>(1) << 20;
+}
+
+qint64 MixAudioDevice::size() const
+{
+    return bytesAvailable();
+}
+
+qint64 MixAudioDevice::readData(char *data, qint64 maxlen)
+{
+    if (!m_engine || !data || maxlen <= 0) {
+        return 0;
+    }
+    return m_engine->pullInterleavedPcm(data, static_cast<int>(maxlen));
+}
+
+qint64 MixAudioDevice::writeData(const char *, qint64)
+{
+    return -1;
+}
 
 AudioEngine::AudioEngine(QObject *parent)
     : QObject(parent)
+    , m_assetLibrary(new AssetLibrary(QStringLiteral("mixing_studio_assets")))
 {
     connect(&m_playbackTimer, &QTimer::timeout, this, &AudioEngine::advancePlayback);
     m_playbackTimer.setInterval(kPlaybackTickMs);
+    connect(&m_meterTimer, &QTimer::timeout, this, &AudioEngine::onMeterTimer);
+    m_meterTimer.setInterval(kMeterTickMs);
+    m_meterTimer.setTimerType(Qt::PreciseTimer);
+    m_captureRing.resize(kAnalysisBufferSamples);
+    m_captureRing.fill(0.0f);
+    rebuildAnalysisBuffer();
+    rebuildOverviewWaveform();
+    refreshAnalysis();
+}
+
+AudioEngine::~AudioEngine()
+{
+    stopAudioOutput();
+    delete m_assetLibrary;
+    m_assetLibrary = nullptr;
 }
 
 QStringList AudioEngine::tracks() const
@@ -38,7 +90,13 @@ bool AudioEngine::isPlaying() const
 
 int AudioEngine::positionMs() const
 {
-    return m_positionMs;
+    // UI / ViewModel read the audible clock. Internal write-head stays in m_positionMs.
+    return audiblePositionMs();
+}
+
+qint64 AudioEngine::positionUSecs() const
+{
+    return audiblePositionUSecs();
 }
 
 int AudioEngine::durationMs() const
@@ -59,6 +117,11 @@ int AudioEngine::loopStartMs() const
 int AudioEngine::loopEndMs() const
 {
     return m_loopEndMs;
+}
+
+int AudioEngine::outputSampleRate() const
+{
+    return m_outputSampleRate;
 }
 
 bool AudioEngine::anySolo() const
@@ -83,261 +146,6 @@ bool AudioEngine::trackAudible(int index) const
     return !soloActive || track.solo;
 }
 
-StereoSample AudioEngine::renderMixFrame(const QVector<float> &trackMonoSamples) const
-{
-    StereoSample mix;
-    const int count = std::min(trackMonoSamples.size(), static_cast<qsizetype>(m_tracks.size()));
-    for (int i = 0; i < count; ++i) {
-        const AudioTrack &track = m_tracks.at(i);
-        TrackProcessParams params;
-        params.volume = track.volume;
-        params.pan = track.pan;
-        params.audible = trackAudible(i);
-        params.eqLowDb = track.eqLowDb;
-        params.eqMidDb = track.eqMidDb;
-        params.eqHighDb = track.eqHighDb;
-        params.compThreshold = track.compThreshold;
-        params.compRatio = track.compRatio;
-        params.fxBypass = track.fxBypass;
-
-        const StereoSample processed = DspProcessor::processTrackSample(trackMonoSamples.at(i), params);
-        mix = DspProcessor::mixLinear(mix, processed);
-    }
-
-    return DspProcessor::applyMasterChain(mix, m_masterVolume);
-}
-
-void AudioEngine::importTrack(const QString &path)
-{
-    AudioTrack track;
-    track.sourcePath = path;
-    track.displayName = QFileInfo(path).fileName();
-    if (track.displayName.isEmpty()) {
-        track.displayName = QStringLiteral("Track %1").arg(m_tracks.size() + 1);
-    }
-
-    m_tracks.append(track);
-
-    if (m_durationMs == 0) {
-        setDurationMs(kPlaceholderDurationMs);
-    }
-
-    emit tracksChanged();
-    emit statusMessageChanged(QStringLiteral("Imported track: %1").arg(track.displayName));
-}
-
-void AudioEngine::clearTracks()
-{
-    if (m_tracks.isEmpty()) {
-        return;
-    }
-
-    stop();
-    m_tracks.clear();
-    setDurationMs(0);
-    m_loopStartMs = 0;
-    m_loopEndMs = 0;
-    emit loopRangeChanged();
-    emit tracksChanged();
-    emit statusMessageChanged(QStringLiteral("All tracks cleared."));
-}
-
-void AudioEngine::play()
-{
-    if (m_tracks.isEmpty()) {
-        emit statusMessageChanged(QStringLiteral("Import at least one track before playback."));
-        return;
-    }
-
-    if (m_positionMs >= m_durationMs && m_durationMs > 0) {
-        setPositionMs(0);
-    }
-
-    setPlaying(true);
-    m_playbackTimer.start();
-    emit statusMessageChanged(QStringLiteral("Playback started."));
-}
-
-void AudioEngine::pause()
-{
-    if (!m_isPlaying) {
-        return;
-    }
-
-    setPlaying(false);
-    m_playbackTimer.stop();
-    emit statusMessageChanged(QStringLiteral("Playback paused."));
-}
-
-void AudioEngine::stop()
-{
-    setPlaying(false);
-    m_playbackTimer.stop();
-    setPositionMs(0);
-    emit statusMessageChanged(QStringLiteral("Playback stopped."));
-}
-
-void AudioEngine::seek(int positionMs)
-{
-    const int clamped = std::clamp(positionMs, 0, m_durationMs);
-    if (m_positionMs == clamped) {
-        return;
-    }
-
-    setPositionMs(clamped);
-    emit statusMessageChanged(QStringLiteral("Seek to %1 ms.").arg(clamped));
-}
-
-void AudioEngine::setMasterVolume(float volume)
-{
-    const float clamped = std::clamp(volume, 0.0f, 1.0f);
-    if (qFuzzyCompare(m_masterVolume, clamped)) {
-        return;
-    }
-
-    m_masterVolume = clamped;
-    emit masterVolumeChanged();
-    emit statusMessageChanged(QStringLiteral("Master volume: %1").arg(m_masterVolume, 0, 'f', 2));
-}
-
-void AudioEngine::setLoopRange(int startMs, int endMs)
-{
-    const int clampedStart = std::clamp(startMs, 0, m_durationMs);
-    const int clampedEnd = std::clamp(endMs, clampedStart, m_durationMs);
-    if (m_loopStartMs == clampedStart && m_loopEndMs == clampedEnd) {
-        return;
-    }
-
-    m_loopStartMs = clampedStart;
-    m_loopEndMs = clampedEnd;
-    emit loopRangeChanged();
-    emit statusMessageChanged(
-        QStringLiteral("Loop range: %1-%2 ms.").arg(m_loopStartMs).arg(m_loopEndMs));
-}
-
-void AudioEngine::setTrackVolume(int index, float volume)
-{
-    if (!isValidTrackIndex(index)) {
-        return;
-    }
-
-    const float clamped = std::clamp(volume, 0.0f, 1.0f);
-    if (qFuzzyCompare(m_tracks[index].volume, clamped)) {
-        return;
-    }
-
-    m_tracks[index].volume = clamped;
-    emit trackParamsChanged(index);
-}
-
-void AudioEngine::setTrackPan(int index, float pan)
-{
-    if (!isValidTrackIndex(index)) {
-        return;
-    }
-
-    const float clamped = std::clamp(pan, -1.0f, 1.0f);
-    if (qFuzzyCompare(m_tracks[index].pan, clamped)) {
-        return;
-    }
-
-    m_tracks[index].pan = clamped;
-    emit trackParamsChanged(index);
-}
-
-void AudioEngine::setTrackMuted(int index, bool muted)
-{
-    if (!isValidTrackIndex(index) || m_tracks[index].muted == muted) {
-        return;
-    }
-
-    m_tracks[index].muted = muted;
-    emit trackParamsChanged(index);
-}
-
-void AudioEngine::setTrackSolo(int index, bool solo)
-{
-    if (!isValidTrackIndex(index) || m_tracks[index].solo == solo) {
-        return;
-    }
-
-    m_tracks[index].solo = solo;
-    emit trackParamsChanged(index);
-}
-
-void AudioEngine::setTrackEq(int index, float lowDb, float midDb, float highDb)
-{
-    if (!isValidTrackIndex(index)) {
-        return;
-    }
-
-    AudioTrack &track = m_tracks[index];
-    const float clampedLow = std::clamp(lowDb, -12.0f, 12.0f);
-    const float clampedMid = std::clamp(midDb, -12.0f, 12.0f);
-    const float clampedHigh = std::clamp(highDb, -12.0f, 12.0f);
-    if (qFuzzyCompare(track.eqLowDb, clampedLow) && qFuzzyCompare(track.eqMidDb, clampedMid)
-        && qFuzzyCompare(track.eqHighDb, clampedHigh)) {
-        return;
-    }
-
-    track.eqLowDb = clampedLow;
-    track.eqMidDb = clampedMid;
-    track.eqHighDb = clampedHigh;
-    emit trackParamsChanged(index);
-}
-
-void AudioEngine::setTrackCompressor(int index, float threshold, float ratio)
-{
-    if (!isValidTrackIndex(index)) {
-        return;
-    }
-
-    AudioTrack &track = m_tracks[index];
-    const float clampedThreshold = std::clamp(threshold, 0.05f, 1.0f);
-    const float clampedRatio = std::max(1.0f, ratio);
-    if (qFuzzyCompare(track.compThreshold, clampedThreshold)
-        && qFuzzyCompare(track.compRatio, clampedRatio)) {
-        return;
-    }
-
-    track.compThreshold = clampedThreshold;
-    track.compRatio = clampedRatio;
-    emit trackParamsChanged(index);
-}
-
-void AudioEngine::setTrackFxBypass(int index, bool bypass)
-{
-    if (!isValidTrackIndex(index) || m_tracks[index].fxBypass == bypass) {
-        return;
-    }
-
-    m_tracks[index].fxBypass = bypass;
-    emit trackParamsChanged(index);
-}
-
-void AudioEngine::advancePlayback()
-{
-    if (!m_isPlaying) {
-        return;
-    }
-
-    const int nextPosition = m_positionMs + kPlaybackTickMs;
-    const bool hasLoop = m_loopEndMs > m_loopStartMs;
-
-    if (nextPosition >= m_durationMs) {
-        if (hasLoop) {
-            setPositionMs(m_loopStartMs);
-        } else {
-            setPositionMs(m_durationMs);
-            pause();
-        }
-    } else if (hasLoop && nextPosition >= m_loopEndMs) {
-        setPositionMs(m_loopStartMs);
-    } else {
-        setPositionMs(nextPosition);
-    }
-}
-
 bool AudioEngine::isValidTrackIndex(int index) const
 {
     return index >= 0 && index < m_tracks.size();
@@ -356,10 +164,16 @@ void AudioEngine::setPlaying(bool playing)
 void AudioEngine::setPositionMs(int positionMs)
 {
     if (m_positionMs == positionMs) {
+        m_playheadSamples = (static_cast<qint64>(m_positionMs) * m_outputSampleRate) / 1000;
         return;
     }
 
     m_positionMs = positionMs;
+    m_playheadSamples = (static_cast<qint64>(m_positionMs) * m_outputSampleRate) / 1000;
+    m_lastQueuedPositionMs = m_positionMs;
+    m_lastEmittedPositionUSecs = static_cast<qint64>(m_positionMs) * 1000;
+    m_lastDeviceProcessedUSecs = -1;
+    m_smoothAudibleClock.invalidate();
     emit positionChanged();
 }
 
@@ -371,4 +185,32 @@ void AudioEngine::setDurationMs(int durationMs)
 
     m_durationMs = durationMs;
     emit durationChanged();
+}
+
+void AudioEngine::recomputeDuration()
+{
+    int maxDuration = 0;
+    for (const AudioTrack &track : m_tracks) {
+        maxDuration = std::max(maxDuration, track.durationMs());
+    }
+    setDurationMs(maxDuration);
+    if (m_loopEndMs > m_durationMs) {
+        m_loopEndMs = m_durationMs;
+        emit loopRangeChanged();
+    }
+}
+
+AudioTrack AudioEngine::makePlaceholderTrack(const QString &name) const
+{
+    AudioTrack track;
+    track.sourcePath = name;
+    track.displayName = name;
+    track.sampleRate = m_outputSampleRate;
+    const int frames = (kPlaceholderDurationMs * m_outputSampleRate) / 1000;
+    track.pcmMono.resize(frames);
+    for (int i = 0; i < frames; ++i) {
+        const float t = static_cast<float>(i) / static_cast<float>(m_outputSampleRate);
+        track.pcmMono[i] = 0.25f * std::sin(2.0f * 3.14159265f * 440.0f * t);
+    }
+    return track;
 }

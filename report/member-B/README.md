@@ -1,190 +1,15 @@
-# 成员 B 中期分报告
+# 成员 B 实现过程记录
 
-> 成员 B：ViewModel / View / Report / 集成验证  
-> 对应当前集成分支：`release/midterm-integration`  
-> 最新集成提交：`194d823 merge: integrate sprint3 mixing`  
-> 截止日期：2026-07-14
+成员 B 主责：ViewModel / View / Report。
 
-## 一、个人负责内容概述
+## 交叉测试入口（A 侧后期集成）
 
-本人在本项目中主要负责 ViewModel、QML View、报告材料和中期集成验证。具体包括：
+macOS 启动方式、主界面各控件作用（UI 使用说明）与简要验收表见：
 
-1. 设计并实现 `MixerViewModel` 与 `TrackViewModel`，为 QML 暴露播放状态、轨道状态、素材列表、波形/频谱/电平数据和用户操作入口。
-2. 设计并实现 `src/View/Main.qml` 调音台界面，包括 Transport、播放进度、Master 音量、Waveform、Spectrum、素材库、最近工程和横向 mixer channel strip。
-3. 在成员 A 的 `AudioEngine` 接口逐步完善后，将 ViewModel 的播放进度、Seek、Master、Volume、Pan、Mute、Solo 同步到底层 Model。
-4. 维护报告目录结构，记录 B 侧过程、AI 使用、构建测试、交叉测试和中期整体报告。
-5. 创建并推送 `release/midterm-integration` 分支，将成员 A 的 Sprint 2 和 Sprint 3 分支按顺序集成，作为 GitHub PR 使用的中期发布分支。
+- [使用说明_成员B测试指南.md](../member-A/使用说明_成员B测试指南.md)
+- 功能背景：[功能报告_后期集成与UI.md](../member-A/功能报告_后期集成与UI.md)
 
-## 二、与评分要求的对应
-
-| 评分项 | B 侧贡献 |
-| :--- | :--- |
-| 成员协作与有效提交 | B 侧在 `chai/feat` 上完成多阶段 ViewModel/View 提交；后续在 `release/midterm-integration` 上完成 Sprint 2、Sprint 3 两次集成 merge。 |
-| 先进框架开发 | B 侧使用 Qt 6 QML + C++17 + MVVM。QML 只绑定 ViewModel，不直接访问 `AudioEngine` 或 `DspProcessor`。 |
-| 完整报告 | B 侧负责整理 `report/README.md` 整体报告、`report/member-B/README.md` 分报告，并维护共享测试记录。 |
-
-## 三、有效提交记录
-
-| 提交 | 类型 | 内容 |
-| :--- | :--- | :--- |
-| `d7704c2` | 规划 | 规划 B 侧分阶段实现方案 |
-| `f7245af` | ViewModel | 暴露 mock 播放 transport 状态 |
-| `f109d01` | 报告 | 记录 B 侧阶段一验证 |
-| `7739f16` | 构建 | 分离可执行输出和 QML module 输出 |
-| `7a25348` | ViewModel | 建立轨道 Solo 和 Audible 状态 |
-| `85ebefd` | 报告 | 记录轨道状态验证 |
-| `10f525b` | View/QML | 渲染 mock waveform、spectrum 和 meters |
-| `db1fecd` | 报告 | 记录 mock 可视化验证 |
-| `60e47c7` | View/QML | 增加 mock 素材库和项目面板 |
-| `66c4564` | 报告 | 记录素材库验证 |
-| `8680017` | View/QML | 收紧 mixer panel 布局 |
-| `f055073` | View/QML | 重构 mixer workspace 布局 |
-| `d450e1c` | 报告 | 记录 UI review redesign |
-| `8dda167` | View/QML | 保证启动时 mixer 可见 |
-| `4fcbeaa` | View/QML | 将项目素材库面板移动到左侧 |
-| `b28ea5c` | 集成 | 合入 Sprint 2 playback |
-| `194d823` | 集成 | 合入 Sprint 3 mixing |
-
-## 四、B 侧技术实现
-
-### 1. ViewModel 状态层
-
-B 侧实现的 `MixerViewModel` 负责把底层 Model 能力转换为 QML 易绑定的属性和命令。主要属性包括：
-
-- `tracks`
-- `playing`
-- `statusMessage`
-- `masterVolume`
-- `positionSeconds`
-- `durationSeconds`
-- `playbackProgress`
-- `playbackTimeText`
-- `anySolo`
-- `waveformPoints`
-- `spectrumLevels`
-- `assetSearchText`
-- `filteredAssetNames`
-- `recentProjectNames`
-
-主要槽函数包括：
-
-- `importMockTrack()`
-- `importAssetByName()`
-- `restoreRecentProject()`
-- `saveMockProject()`
-- `play()`
-- `pause()`
-- `stop()`
-- `seekToProgress()`
-- `setMasterVolume()`
-- `setAssetSearchText()`
-
-在 Sprint 2 集成后，播放位置、时长和 Seek 由 `AudioEngine` 提供，不再只由 ViewModel 自己维护秒表。  
-在 Sprint 3 集成后，轨道 Volume、Pan、Mute、Solo 会通过 `syncTrackToEngine()` 同步到底层 `AudioEngine`，使 UI 上的 channel strip 控件能够驱动 Model 参数。
-
-### 2. TrackViewModel 单轨状态
-
-`TrackViewModel` 负责单条轨道的界面状态，包括：
-
-- 轨道名 `name`
-- 音量 `volume`
-- 声像 `pan`
-- 静音 `muted`
-- 独奏 `solo`
-- 是否可听 `audible`
-- 电平 `meterLevel`
-- 文本回显 `volumeText`、`panText`、`meterText`
-
-其中 `audible` 由 Mute/Solo 规则共同决定，避免 QML 自行判断复杂业务逻辑。
-
-### 3. QML 界面
-
-`Main.qml` 当前形成了一个可操作的调音台界面：
-
-- 顶部：标题、Import、Play/Pause、Stop、时间码、播放进度、Master 音量和状态消息。
-- 中部：Waveform 与 Spectrum 两个分析面板，带坐标网格和播放位置线。
-- 左侧：最近工程、恢复入口、保存快照、素材库搜索、选中素材导入。
-- 主区域：横向 mixer channel strip，每条轨道包含电平条、音量推子、Pan、Mute、Solo 和电平文本。
-
-### 4. 报告与证据整理
-
-B 侧负责把开发过程转化为可检查的报告证据，包括：
-
-- 在 `report/member-B/README.md` 中记录每个阶段的 AI 使用、实现内容、人工修改、自测结果和对应提交。
-- 在 `report/shared/TEST_AND_TOOLCHAIN.md` 中记录 macOS/Windows 工具链、构建命令和测试结果。
-- 在 `report/shared/CROSS_TEST_LOG.md` 中记录交叉测试和阶段检查项。
-- 在 `report/README.md` 中补充中期整体报告，说明项目现状、分工、架构、测试和后续计划。
-
-## 五、当前实现边界
-
-需要明确的是，B 侧当前实现的是可交互调音台界面和接口绑定链路，不是完整真实音频播放链路。
-
-当前能用的部分：
-
-- 可以启动 Qt/QML 应用。
-- 可以通过 Import 或素材库导入入口创建轨道。
-- 可以操作 Play/Pause/Stop、Seek、Master。
-- 可以操作单轨 Volume、Pan、Mute、Solo。
-- 可以看到 waveform、spectrum、meter 的动态变化。
-- UI 控件能够通过 ViewModel 同步到 `AudioEngine` 的对应接口。
-
-当前仍是 mock 或 stub 的部分：
-
-- 素材库是内置 mock 名称，不是磁盘文件浏览。
-- `AudioEngine::play()` 当前推进播放时钟，不向声卡输出真实声音。
-- waveform、spectrum、meter 当前是 mock/确定性模拟数据，不是从真实 PCM 计算。
-- 最近工程和保存快照是界面入口，未实现真实 JSON/数据库持久化。
-
-这个边界是中期报告中必须诚实说明的内容。下一阶段需要优先把 mock 文件导入替换为真实 WAV 导入和 `QAudioSink` 输出。
-
-## 六、自测与集成验证
-
-B 侧在 macOS 上对当前中期集成分支完成了构建和测试：
-
-```bash
-cmake -S . -B build-midterm \
-  -DCMAKE_PREFIX_PATH=/opt/homebrew \
-  -DQt6_DIR=/opt/homebrew/lib/cmake/Qt6 \
-  -DQt6Qml_DIR=/opt/homebrew/lib/cmake/Qt6Qml \
-  -DQt6Quick_DIR=/opt/homebrew/lib/cmake/Qt6Quick \
-  -DQt6QuickControls2_DIR=/opt/homebrew/lib/cmake/Qt6QuickControls2
-
-cmake --build build-midterm --config Debug --target MixingStudio
-ctest --test-dir build-midterm -C Debug --output-on-failure
-```
-
-测试结果：
-
-```text
-1/2 Test #1: dsp_processor .................... Passed
-2/2 Test #2: audio_engine ..................... Passed
-100% tests passed, 0 tests failed out of 2
-```
-
-应用启动检查结果：
-
-- `MixingStudio` 可执行文件构建成功。
-- 本地启动后未出现终端 QML/runtime 错误。
-- 由于当前未接真实声卡输出，启动验证仅能证明 GUI 和状态链路可运行，不能证明真实音频播放完成。
-
-## 七、问题反思
-
-B 侧前期采用 mock 数据推进 UI 是合理的，因为成员 A 的底层 Model/DSP 接口尚未稳定，如果等待底层完全完成会阻塞前端开发。但中期以后，mock 不能继续作为主要功能实现。当前项目最明显的问题是“界面像真实调音台，但音频链路还没有真实发声”，这会影响最终验收。
-
-因此，下一阶段 B 侧需要和 A 侧协同推进真实链路：
-
-1. B 侧在 QML 增加真实文件选择入口。
-2. A 侧提供 WAV 解码或 PCM 数据读取接口。
-3. B 侧将素材库导入入口从 mock 名称改为真实文件路径。
-4. A 侧用 `QAudioSink` 实现真实输出。
-5. B 侧将 waveform/spectrum/meter 从 mock 数据切换为 Model 提供的真实分析数据。
-6. B 侧补充 EQ/Compressor/Bypass 控件，对接 A 侧 Sprint 3 已提供的接口。
-
-## 八、个人小结
-
-到中期为止，B 侧完成了从零到可运行调音台界面的搭建，并在 A 侧底层接口逐步完善后完成了部分真实接口对接。我的主要贡献集中在 ViewModel 状态设计、QML 界面实现、交互流程、报告证据和集成发布分支。当前成果足以支撑中期报告中关于协作、框架和过程完整性的要求，但距离真实可用的音频软件仍需要完成真实文件导入、音频输出和真实分析数据替换。
-
-成员 B 主责：`ViewModel / View / Report`。
+测完请在 [CROSS_TEST_LOG.md](../shared/CROSS_TEST_LOG.md) 补一行。
 
 ## 负责模块
 
@@ -361,3 +186,33 @@ B 侧前期采用 mock 数据推进 UI 是合理的，因为成员 A 的底层 M
   - CTest 2/2 通过输出
   - `git log --graph` 显示两次集成 merge
   - 本文件和 `report/README.md` 的中期报告内容
+
+## 阶段 6：后期分支独立 Code Review、调试与集成验收
+
+- 日期：2026-07-17
+- 使用的大模型：Codex
+- 采用模式：AI 辅助静态审查、测试设计与缺陷定位；成员 B 确认审查边界、配置 macOS 依赖并复核测试结论。
+- 提示词摘要：以成员 B 的测试/审核角色，对成员 A 的后期集成分支执行详尽 code review、构建、非单元测试补强和调试；不修改中期报告。
+- Review 与测试范围：
+  - 以 `origin/release/midterm-integration...feature/mvvm-app-command-architecture` 为审查范围，检查约 104 个变更文件。
+  - macOS 干净配置与全量应用构建；CTest；Qt `qmllint`；完整 QML/ViewModel 启动冒烟。
+  - 新增真实音频管线 E2E：生成 WAV → 导入 → 轨参/Loop/自动化 → 保存 → 新引擎加载 → 导出 → 再解码。
+  - 新增仓库样例 E2E：加载 `samples/demo_session.json`，确认 4 个真实 WAV 均可解码并能导出有效音频。
+- 发现并推动修复：
+  - 音频设备返回 Int32/UInt8 首选格式时，旧实现会按 Int16 写缓冲；限制协商为实际实现的 Int16/Float。
+  - `run_tests.sh` 使用 `|| true` 吞掉测试目标编译失败，且遗漏测试；改为全目标、失败即退出并修正 Qt 模块探测。
+  - WAV 解码器错误接受未实现位深并返回静音成功；增加格式拒绝与回归用例。
+  - WAV 测试 fixture 左右反相，单声道抵消后依靠量化误差假通过；改为同相 fixture。
+  - QML 波形/频谱颜色读取失效 singleton，运行期出现 undefined；改为组件内明确颜色属性。
+  - SQLite 命名连接移除时仍持有句柄；修正释放顺序。
+  - Save 按轨道数命名会覆盖不同工程；改为带毫秒时间戳的唯一名称。
+- 自测结果：
+  - `cmake -S . -B build-review -DCMAKE_PREFIX_PATH=/opt/homebrew -DCMAKE_BUILD_TYPE=Debug` 通过。
+  - `cmake --build build-review -j 6` 完整应用与测试构建通过。
+  - `ctest --test-dir build-review --output-on-failure`：**11/11 通过**。
+  - `cmake --build build-review --target all_qmllint` 完成；修复其中两处真实 missing-property/undefined 问题，其余主要为 context property 静态识别告警。
+  - `git diff --check` 通过。
+- 审核结论：自动化构建、启动、WAV/工程/导出主链与仓库样例闭环通过；真实声卡听感、设备热插拔、MP3 fixture 和完整 GUI 点击流程仍需人工或专用环境验收。
+- 保留问题：当前“10 段图形 EQ”实现把各频段增益相乘为整体增益，不具备频率选择性，不能作为真实十段 EQ 验收通过。
+- 对应提交：待提交。
+- 可放入报告的证据：CTest 11/11 输出、`test_audio_pipeline_e2e.cpp`、`app_smoke`、QML lint 输出、修复差异与本阶段交叉测试记录。

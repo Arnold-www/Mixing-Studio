@@ -1,53 +1,43 @@
 # Mixing Studio
 
-基于 Qt 6、C++17、QML 和严格 MVVM 架构的多轨调音项目。
+基于 Qt 6、C++17、QML 与五层 MVVM（`App / View / ViewModel / Model / Common`）的多轨调音项目。
 
-## 当前进度
+View 通过 **接口面向** 解耦：QML 只绑定 `IMixerViewModel*`，由 App 注入；实现类为 `RealMixerViewModel`（聚合 `AudioEngine`）。
 
-**阶段一完成；阶段二播放闭环已提交（`b244414`）；阶段三 A 侧混音/DSP 在 `feature/A-model-dsp-sprint3-mixing`（轨参/EQ/压缩/Bypass 底层 + 离线混音限幅 + CTest）。** B 侧 EQ/Comp UI 与真 PCM 输出仍待后续。
+架构说明见 [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) 与 [`1. 架构关系与数据流向图 (Mermaid 格式).md`](1.%20架构关系与数据流向图%20(Mermaid%20格式).md)。
 
 ## 目录结构
 
-- `include/Model/`、`src/Model/` — 音频引擎（成员 A）
-- `include/DSP/`、`src/DSP/` — DSP 算法（成员 A）
-- `include/ViewModel/`、`src/ViewModel/` — 状态与命令转发（成员 B）
-- `src/View/` — QML 界面（成员 B）
-- `tests/` — 单元测试（`test_dsp_processor`、`test_audio_engine`）
-- `scripts/` — 构建与验证脚本
-- `docs/planning/` — 项目规划书
-- `report/` — 过程记录与报告证据
+- `include/Common/` — `ICommandBase`、`MixerTypes`
+- `include/Model/`、`src/Model/` — `AudioEngine` 等
+- `include/DSP/`、`src/DSP/` — DSP 处理与分析
+- `include/ViewModel/` — `IMixerViewModel` / `ITrackViewModel` 契约 + `RealMixerViewModel` / `TrackViewModel`
+- `include/Command/` — 作用于 `AudioEngine` 的命令
+- `include/App/` — `MixingStudioApp` 装配（注入接口指针）
+- `src/View/` — QML
+- `tests/`、`scripts/`、`docs/`、`report/`
 
-## 协作模式
+## 协作模式（后期）
 
-- **成员 A：** Model / DSP / Persistence
-- **成员 B：** ViewModel / View / Report
-- 每阶段交叉测试通过后合入 `main`
+- **成员 A（彭）：** 架构优化与实现（Common / 契约 / RealVM / Model / App 装配）
+- **成员 B（张）：** 测试与审核（CTest、`validate_feature`、合入验收）
+- 调用链：`QML → IMixerViewModel → RealMixerViewModel → Command/Model → DSP`
 
-## 脚本分类
+## 脚本
 
-详见 `[scripts/README.md](scripts/README.md)`：
+详见 [`scripts/README.md`](scripts/README.md)。脚本会自动探测本机 Qt，**无需手写路径**。
 
-
-| 类别    | 脚本                               | 用途                  |
-| ----- | -------------------------------- | ------------------- |
-| 环境配置  | `configure_qt_windows.ps1`       | 首次 Windows Qt 配置与构建 |
-| 构建与测试 | `run_tests.ps1` / `run_tests.sh` | 一键构建 + CTest        |
-| 质量互测  | `validate_feature.ps1`           | MVVM 架构边界检查         |
-
-
-
-
-## 本地运行（Windows）
-
-**前置条件：** Qt 6.5+、CMake 3.21+、Visual Studio 2022（MSVC）。首次环境搭建见 `[scripts/README.md](scripts/README.md)`。
+启动后可用 **Import Audio** 选择本地 `.wav` / `.mp3`；**Load Sample** 加载内置样例；**Loop** / **Mock** 在 Transport 栏。
 
 ```powershell
-.\scripts\run_tests.ps1 -QtPath "D:\Qt\6.5.3\msvc2019_64" -WithApp
-.\build\bin\Debug\MixingStudio.exe
+# 一键：探测 Qt → 配置/构建 → 启动（推荐）
+.\scripts\run_app.ps1
+
+# 测试
+.\scripts\run_tests.ps1 -WithApp
 ```
 
-
-
+若需把 Qt DLL 拷到 exe 旁以便直接双击运行：`.\scripts\run_app.ps1 -Deploy`。
 ## 截止时间
 
 最终提交：7 月 18 日；7 月 17 日进入冻结期。
