@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.21)
 
 project(MixingStudio VERSION 0.1.0 LANGUAGES CXX)
 
+include(GNUInstallDirs)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
@@ -93,6 +95,10 @@ qt_add_executable(MixingStudio
 
 set_target_properties(MixingStudio PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+    WIN32_EXECUTABLE TRUE
 )
 
 target_link_libraries(MixingStudio
@@ -113,12 +119,38 @@ target_include_directories(MixingStudio
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-add_custom_command(TARGET MixingStudio POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/samples"
-            "$<TARGET_FILE_DIR:MixingStudio>/samples"
-    COMMENT "Copy sample project next to MixingStudio"
+if(APPLE)
+    add_custom_command(TARGET MixingStudio POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_SOURCE_DIR}/samples"
+                "$<TARGET_BUNDLE_CONTENT_DIR:MixingStudio>/Resources/samples"
+        COMMENT "Copy sample project into the application bundle"
+    )
+else()
+    add_custom_command(TARGET MixingStudio POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_SOURCE_DIR}/samples"
+                "$<TARGET_FILE_DIR:MixingStudio>/samples"
+        COMMENT "Copy sample project next to MixingStudio"
+    )
+endif()
+
+install(TARGETS MixingStudio
+    BUNDLE DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+if(NOT APPLE)
+    install(DIRECTORY samples
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()
+
+qt_generate_deploy_qml_app_script(
+    TARGET MixingStudio
+    OUTPUT_SCRIPT MIXING_STUDIO_DEPLOY_SCRIPT
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${MIXING_STUDIO_DEPLOY_SCRIPT})
 
 enable_testing()
 
