@@ -19,15 +19,29 @@ Rectangle {
     property bool projectsOpen: false
     property bool spectrumOpen: false
 
+    property bool playing: false
+    property string playbackTimeText: ""
+    property real masterVolume: 1.0
+    property real vuLevel: 0.0
+    property bool mockValidationMode: false
+
+    signal importFilesRequested(var urls)
+    signal demoRequested()
+    signal sampleRequested()
+    signal saveRequested()
+    signal exportRequested()
+    signal playRequested()
+    signal pauseRequested()
+    signal stopRequested()
+    signal masterVolumeEdited(real value)
+    signal mockToggled()
+
     FileDialog {
         id: audioDialog
         title: "Import Audio"
         nameFilters: ["Audio files (*.wav *.mp3)", "WAV (*.wav)", "MP3 (*.mp3)"]
         fileMode: FileDialog.OpenFiles
-        onAccepted: {
-            for (var i = 0; i < selectedFiles.length; ++i)
-                mixerViewModel.importLocalFile(selectedFiles[i])
-        }
+        onAccepted: bar.importFilesRequested(selectedFiles)
     }
 
     RowLayout {
@@ -44,6 +58,7 @@ Rectangle {
         }
 
         ToolIconButton {
+            objectName: "libraryButton"
             text: "Library"
             toggled: bar.libraryOpen
             onClicked: {
@@ -53,6 +68,7 @@ Rectangle {
             }
         }
         ToolIconButton {
+            objectName: "projectsButton"
             text: "Projects"
             toggled: bar.projectsOpen
             onClicked: {
@@ -62,6 +78,7 @@ Rectangle {
             }
         }
         ToolIconButton {
+            objectName: "spectrumButton"
             text: "Spectrum"
             toggled: bar.spectrumOpen
             onClicked: bar.spectrumOpen = !bar.spectrumOpen
@@ -69,28 +86,30 @@ Rectangle {
 
         Item { Layout.preferredWidth: 6 }
 
-        ToolIconButton { text: "Import"; onClicked: audioDialog.open() }
-        ToolIconButton { text: "Demo"; onClicked: mixerViewModel.importMockTrack() }
-        ToolIconButton { text: "Sample"; onClicked: mixerViewModel.loadSampleProject() }
-        ToolIconButton { text: "Save"; onClicked: mixerViewModel.saveProject() }
-        ToolIconButton { text: "Export"; onClicked: mixerViewModel.exportMix() }
+        ToolIconButton { objectName: "importButton"; text: "Import"; onClicked: audioDialog.open() }
+        ToolIconButton { objectName: "demoButton"; text: "Demo"; onClicked: bar.demoRequested() }
+        ToolIconButton { objectName: "sampleButton"; text: "Sample"; onClicked: bar.sampleRequested() }
+        ToolIconButton { objectName: "saveButton"; text: "Save"; onClicked: bar.saveRequested() }
+        ToolIconButton { objectName: "exportButton"; text: "Export"; onClicked: bar.exportRequested() }
 
         Item { Layout.preferredWidth: 6 }
 
         ToolIconButton {
-            text: mixerViewModel.playing ? "Pause" : "Play"
+            objectName: "playPauseButton"
+            text: bar.playing ? "Pause" : "Play"
             primary: true
-            toggled: mixerViewModel.playing
+            toggled: bar.playing
             implicitWidth: 72
-            onClicked: mixerViewModel.playing ? mixerViewModel.pause() : mixerViewModel.play()
+            onClicked: bar.playing ? bar.pauseRequested() : bar.playRequested()
         }
         ToolIconButton {
+            objectName: "stopButton"
             text: "Stop"
-            onClicked: mixerViewModel.stop()
+            onClicked: bar.stopRequested()
         }
 
         Label {
-            text: mixerViewModel.playbackTimeText
+            text: bar.playbackTimeText
             color: "#ffffff"
             font.family: Qt.platform.os === "osx" ? "Menlo" : "Consolas"
             font.pixelSize: 13
@@ -107,28 +126,30 @@ Rectangle {
         }
         Slider {
             id: masterSlider
+            objectName: "masterVolumeSlider"
             from: 0.0
             to: 1.0
-            onMoved: mixerViewModel.masterVolume = value
+            onMoved: bar.masterVolumeEdited(value)
             Layout.preferredWidth: 110
             Layout.alignment: Qt.AlignVCenter
             Material.accent: Material.Teal
             Binding {
                 target: masterSlider
                 property: "value"
-                value: mixerViewModel.masterVolume
+                value: bar.masterVolume
                 when: !masterSlider.pressed
             }
         }
         NumericValueField {
+            objectName: "masterVolumeField"
             Layout.preferredWidth: 44
             Layout.alignment: Qt.AlignVCenter
             from: 0.0
             to: 1.0
             decimals: 0
             percentScale: true
-            value: mixerViewModel.masterVolume
-            onValueEdited: function(v) { mixerViewModel.masterVolume = v }
+            value: bar.masterVolume
+            onValueEdited: function(v) { bar.masterVolumeEdited(v) }
         }
         Label {
             text: "%"
@@ -141,14 +162,15 @@ Rectangle {
             Layout.minimumWidth: 120
             Layout.preferredHeight: 12
             Layout.alignment: Qt.AlignVCenter
-            currentLevel: mixerViewModel.vuLevel
+            currentLevel: bar.vuLevel
             threshold: 0.85
         }
         ToolIconButton {
+            objectName: "mockButton"
             text: "Mock"
-            toggled: mixerViewModel.mockValidationMode
+            toggled: bar.mockValidationMode
             Layout.alignment: Qt.AlignVCenter
-            onClicked: mixerViewModel.mockValidationMode = !mixerViewModel.mockValidationMode
+            onClicked: bar.mockToggled()
         }
 
         Item { Layout.preferredWidth: 32; Layout.maximumWidth: 32 }

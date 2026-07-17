@@ -5,15 +5,19 @@ import MixingStudio
 
 Item {
     id: root
-    readonly property color plotTextColor: "#6a7588"
-    readonly property color plotBorderColor: "#2a3140"
-    readonly property color waveformColor: "#5dcea8"
-    readonly property color automationColor: "#e0a45a"
-    readonly property color playheadColor: "#e07a5f"
     // Do NOT use anchors.fill when this is a Layout child — that escapes the
     // layout cell and paints the playhead over sibling rows (e.g. Loop).
     // Parent (or Layout) sizes this item; we clip all plot drawing.
     clip: true
+
+    property bool playing: false
+    property real playbackProgress: 0
+    property var waveformPoints: []
+    property var automationPoints: []
+    property int selectedTrackIndex: -1
+
+    signal addAutomationRequested(real progress, real value)
+    signal moveAutomationRequested(int pointIndex, real progress, real value)
 
     Item {
         id: plotArea
@@ -27,28 +31,13 @@ Item {
             readonly property real bottomPad: 26
             readonly property real plotWidth: Math.max(1, width - leftPad - rightPad)
             readonly property real plotHeight: Math.max(1, height - topPad - bottomPad)
-            property var displayPoints: []
-
-            function syncDisplayPoints() {
-                var src = mixerViewModel.waveformPoints
-                if (!src || src.length === 0) {
-                    displayPoints = []
-                    return
-                }
-                var alpha = mixerViewModel.playing ? 0.36 : 1.0
-                var next = new Array(src.length)
-                for (var i = 0; i < src.length; ++i) {
-                    var prev = (displayPoints && displayPoints.length === src.length) ? displayPoints[i] : src[i]
-                    next[i] = prev + (src[i] - prev) * alpha
-                }
-                displayPoints = next
-            }
-
             Canvas {
                 id: waveformCanvas
                 anchors.fill: parent
+                // Waveform is static overview — paint on data/size change only.
+                // Playhead is a separate Rectangle so Seek stays smooth at ~120 Hz.
                 renderTarget: Canvas.FramebufferObject
-                renderStrategy: Canvas.Threaded
+                renderStrategy: Canvas.Cooperative
                 antialiasing: true
                 property bool paintPending: false
 
@@ -80,7 +69,7 @@ Item {
 
                     ctx.strokeStyle = "rgba(80, 100, 120, 0.35)"
                     ctx.lineWidth = 1
-                    ctx.fillStyle = root.plotTextColor
+                    ctx.fillStyle = Theme.textMuted
                     ctx.font = "10px sans-serif"
                     ctx.textAlign = "right"
                     ctx.textBaseline = "middle"
@@ -111,26 +100,23 @@ Item {
                         ctx.fillText(timeLabels[t], tx, top + plotHeight + 6)
                     }
 
-                    ctx.strokeStyle = root.plotBorderColor
+                    ctx.strokeStyle = Theme.border
                     ctx.strokeRect(left, top, plotWidth, plotHeight)
 
-                    var points = plotArea.displayPoints
+                    var points = root.waveformPoints
                     if (points && points.length > 1) {
                         ctx.beginPath()
                         var x0 = left
                         var y0 = midY - points[0] * plotHeight * 0.42
                         ctx.moveTo(x0, midY)
                         ctx.lineTo(x0, y0)
-                        for (var i = 0; i < points.length - 1; ++i) {
-                            var x1 = left + (i / (points.length - 1)) * plotWidth
-                            var x2 = left + ((i + 1) / (points.length - 1)) * plotWidth
-                            var y1 = midY - points[i] * plotHeight * 0.42
-                            var y2 = midY - points[i + 1] * plotHeight * 0.42
-                            ctx.quadraticCurveTo(x1, y1, (x1 + x2) / 2, (y1 + y2) / 2)
+                        // Linear segments — cheaper than quadratic curves, still realtime-smooth playhead.
+                        for (var i = 1; i < points.length; ++i) {
+                            var x = left + (i / (points.length - 1)) * plotWidth
+                            var y = midY - points[i] * plotHeight * 0.42
+                            ctx.lineTo(x, y)
                         }
                         var xLast = left + plotWidth
-                        var yLast = midY - points[points.length - 1] * plotHeight * 0.42
-                        ctx.quadraticCurveTo(xLast, yLast, xLast, yLast)
                         ctx.lineTo(xLast, midY)
                         ctx.closePath()
                         var fill = ctx.createLinearGradient(0, top, 0, top + plotHeight)
@@ -141,24 +127,21 @@ Item {
 
                         ctx.beginPath()
                         ctx.moveTo(x0, y0)
-                        for (var j = 0; j < points.length - 1; ++j) {
-                            var ax = left + (j / (points.length - 1)) * plotWidth
-                            var bx = left + ((j + 1) / (points.length - 1)) * plotWidth
-                            var ay = midY - points[j] * plotHeight * 0.42
-                            var by = midY - points[j + 1] * plotHeight * 0.42
-                            ctx.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2)
+                        for (var j = 1; j < points.length; ++j) {
+                            var sx = left + (j / (points.length - 1)) * plotWidth
+                            var sy = midY - points[j] * plotHeight * 0.42
+                            ctx.lineTo(sx, sy)
                         }
-                        ctx.quadraticCurveTo(xLast, yLast, xLast, yLast)
-                        ctx.strokeStyle = root.waveformColor
-                        ctx.lineWidth = 2.4
+                        ctx.strokeStyle = Theme.waveStroke
+                        ctx.lineWidth = 2.0
                         ctx.lineJoin = "round"
                         ctx.lineCap = "round"
                         ctx.stroke()
                     }
 
-                    var autoPts = mixerViewModel.automationPoints
+                    var autoPts = root.automationPoints
                     if (autoPts && autoPts.length > 0) {
-                        ctx.strokeStyle = root.automationColor
+                        ctx.strokeStyle = Theme.autoLine
                         ctx.lineWidth = 2
                         ctx.beginPath()
                         for (var p = 0; p < autoPts.length; ++p) {
@@ -169,7 +152,7 @@ Item {
                         }
                         ctx.stroke()
                         for (var q = 0; q < autoPts.length; ++q) {
-                            ctx.fillStyle = root.automationColor
+                            ctx.fillStyle = Theme.autoLine
                             ctx.beginPath()
                             ctx.arc(left + autoPts[q].progress * plotWidth,
                                     top + (1.0 - autoPts[q].value) * plotHeight,
@@ -179,44 +162,24 @@ Item {
                     }
                 }
 
-                Component.onCompleted: {
-                    plotArea.syncDisplayPoints()
-                    requestPaint()
-                }
+                Component.onCompleted: requestPaint()
                 onWidthChanged: schedulePaint()
                 onHeightChanged: schedulePaint()
-
-                Connections {
-                    target: mixerViewModel
-                    function onWaveformPointsChanged() {
-                        plotArea.syncDisplayPoints()
-                        waveformCanvas.schedulePaint()
-                    }
-                    function onAutomationPointsChanged() { waveformCanvas.schedulePaint() }
-                    function onSelectedTrackIndexChanged() { waveformCanvas.schedulePaint() }
-                    function onPlayingChanged() {
-                        plotArea.syncDisplayPoints()
-                        waveformCanvas.schedulePaint()
-                    }
-                }
             }
 
-            Timer {
-                interval: 16
-                running: mixerViewModel.playing
-                repeat: true
-                onTriggered: {
-                    plotArea.syncDisplayPoints()
-                    waveformCanvas.schedulePaint()
-                }
+            Connections {
+                target: root
+                function onWaveformPointsChanged() { waveformCanvas.schedulePaint() }
+                function onAutomationPointsChanged() { waveformCanvas.schedulePaint() }
+                function onSelectedTrackIndexChanged() { waveformCanvas.schedulePaint() }
             }
 
             Rectangle {
-                x: plotArea.leftPad + mixerViewModel.playbackProgress * plotArea.plotWidth - 1
+                x: plotArea.leftPad + root.playbackProgress * plotArea.plotWidth - 1
                 y: plotArea.topPad
                 width: 2
                 height: plotArea.plotHeight
-                color: root.playheadColor
+                color: Theme.playhead
             }
 
             MouseArea {
@@ -228,7 +191,7 @@ Item {
                 property int dragIndex: -1
 
                 function hitIndex(mx, my) {
-                    var pts = mixerViewModel.automationPoints
+                    var pts = root.automationPoints
                     for (var i = 0; i < pts.length; ++i) {
                         var ax = pts[i].progress * width
                         var ay = (1.0 - pts[i].value) * height
@@ -241,20 +204,20 @@ Item {
                 }
 
                 onPressed: function(mouse) {
-                    if (mixerViewModel.selectedTrackIndex < 0)
+                    if (root.selectedTrackIndex < 0)
                         return
                     dragIndex = hitIndex(mouse.x, mouse.y)
                     if (dragIndex < 0) {
-                        mixerViewModel.addAutomationPoint(
+                        root.addAutomationRequested(
                                     Math.max(0, Math.min(1, mouse.x / Math.max(1, width))),
                                     Math.max(0, Math.min(1, 1.0 - mouse.y / Math.max(1, height))))
-                        dragIndex = mixerViewModel.automationPoints.length - 1
+                        dragIndex = root.automationPoints.length - 1
                     }
                 }
                 onPositionChanged: function(mouse) {
                     if (dragIndex < 0)
                         return
-                    mixerViewModel.moveAutomationPoint(
+                    root.moveAutomationRequested(
                                 dragIndex,
                                 Math.max(0, Math.min(1, mouse.x / Math.max(1, width))),
                                 Math.max(0, Math.min(1, 1.0 - mouse.y / Math.max(1, height))))

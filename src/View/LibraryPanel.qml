@@ -8,6 +8,14 @@ Item {
     id: root
     anchors.fill: parent
 
+    property string searchText: ""
+    property var assetNames: []
+    property int selectedIndex: -1
+
+    signal searchTextEdited(string text)
+    signal assetIndexSelected(int index)
+    signal importRequested()
+
     Material.theme: Material.Dark
     Material.accent: Material.Teal
     Material.background: "#12151c"
@@ -20,10 +28,10 @@ Item {
 
         TextField {
             id: searchField
-            text: mixerViewModel.assetSearchText
+            text: root.searchText
             placeholderText: "Search assets…"
             selectByMouse: true
-            onTextEdited: mixerViewModel.assetSearchText = text
+            onTextEdited: root.searchTextEdited(text)
             Layout.fillWidth: true
             Layout.preferredHeight: 36
             color: "#ffffff"
@@ -41,7 +49,7 @@ Item {
         }
 
         Label {
-            text: (mixerViewModel.filteredAssetNames ? mixerViewModel.filteredAssetNames.length : 0)
+            text: (root.assetNames ? root.assetNames.length : 0)
                   + " assets  ·  select then Import"
             color: "#c5cede"
             font.pixelSize: 12
@@ -53,10 +61,11 @@ Item {
             Layout.fillHeight: true
             clip: true
             spacing: 4
-            model: mixerViewModel.filteredAssetNames
+            model: root.assetNames
+            currentIndex: root.selectedIndex
             onCountChanged: {
-                if (currentIndex >= count)
-                    currentIndex = -1
+                if (root.selectedIndex >= count)
+                    root.assetIndexSelected(-1)
             }
 
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
@@ -66,7 +75,7 @@ Item {
                 width: ListView.view.width
                 height: 36
                 radius: 5
-                property bool selected: assetList.currentIndex === index
+                property bool selected: root.selectedIndex === index
                 property bool hovered: rowMouse.containsMouse
 
                 color: {
@@ -95,21 +104,20 @@ Item {
                     id: rowMouse
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: assetList.currentIndex = index
-                    // No double-click import — must use Import Selected
+                    onClicked: root.assetIndexSelected(index)
                 }
             }
         }
 
         ToolIconButton {
-            text: assetList.currentIndex >= 0
-                  ? ("Import  ·  " + mixerViewModel.filteredAssetNames[assetList.currentIndex])
+            text: root.selectedIndex >= 0
+                  ? ("Import  ·  " + root.assetNames[root.selectedIndex])
                   : "Import Selected"
             primary: true
-            enabled: assetList.currentIndex >= 0
+            enabled: root.selectedIndex >= 0
             Layout.fillWidth: true
             Layout.preferredHeight: 34
-            onClicked: mixerViewModel.importAssetByName(mixerViewModel.filteredAssetNames[assetList.currentIndex])
+            onClicked: root.importRequested()
         }
     }
 }

@@ -43,7 +43,8 @@ else
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_project_store
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_asset_library
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_common_types
-  cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_commands
+  cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_viewmodel_commands
+  cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_ui_binder
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_wav_export
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_wav_decoder
   cmake --build "$BUILD_DIR" --config "$CONFIG" --target test_automation

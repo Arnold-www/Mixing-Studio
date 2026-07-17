@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql Multimedia)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql Multimedia Test)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -38,7 +38,6 @@ set(MIXING_STUDIO_MODEL_SOURCES
 )
 
 set(MIXING_STUDIO_COMMON_SOURCES
-    include/Common/ICommandBase.h
     include/Common/MixerTypes.h
 )
 
@@ -47,24 +46,40 @@ set(MIXING_STUDIO_APP_SOURCES
     src/App/MixingStudioApp.cpp
 )
 
-set(MIXING_STUDIO_COMMAND_SOURCES
-    include/Command/ICommand.h
-    include/Command/PlaybackCommands.h
-    src/Command/PlaybackCommands.cpp
-    include/Command/ProjectCommands.h
-    src/Command/ProjectCommands.cpp
-    include/Command/TrackDspCommands.h
-    src/Command/TrackDspCommands.cpp
-    include/Command/MixerCommands.h
-)
-
 set(MIXING_STUDIO_VIEWMODEL_SOURCES
-    include/ViewModel/ITrackViewModel.h
-    include/ViewModel/IMixerViewModel.h
     include/ViewModel/TrackViewModel.h
     src/ViewModel/TrackViewModel.cpp
     include/ViewModel/RealMixerViewModel.h
     src/ViewModel/RealMixerViewModel.cpp
+)
+
+set(MIXING_STUDIO_QML_FILES
+    src/View/Main.qml
+    src/View/Theme.qml
+    src/View/DarkButton.qml
+    src/View/ToolIconButton.qml
+    src/View/ClipLoopToggle.qml
+    src/View/NumericValueField.qml
+    src/View/LevelMeterBar.qml
+    src/View/TimelineStrip.qml
+    src/View/DetachablePanelHost.qml
+    src/View/TransportBar.qml
+    src/View/WaveformPanel.qml
+    src/View/SpectrumPanel.qml
+    src/View/ProjectsPanel.qml
+    src/View/LibraryPanel.qml
+    src/View/TrackMixerList.qml
+)
+
+# Shared QML module (app + UI automation test)
+qt_add_library(MixingStudioQml STATIC)
+qt_add_qml_module(MixingStudioQml
+    URI MixingStudio
+    VERSION 1.0
+    QML_FILES ${MIXING_STUDIO_QML_FILES}
+)
+set_source_files_properties(src/View/Theme.qml PROPERTIES
+    QT_QML_SINGLETON_TYPE TRUE
 )
 
 qt_add_executable(MixingStudio
@@ -73,7 +88,6 @@ qt_add_executable(MixingStudio
     ${MIXING_STUDIO_DSP_SOURCES}
     ${MIXING_STUDIO_MODEL_SOURCES}
     ${MIXING_STUDIO_APP_SOURCES}
-    ${MIXING_STUDIO_COMMAND_SOURCES}
     ${MIXING_STUDIO_VIEWMODEL_SOURCES}
 )
 
@@ -81,33 +95,10 @@ set_target_properties(MixingStudio PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
-qt_add_qml_module(MixingStudio
-    URI MixingStudio
-    VERSION 1.0
-    QML_FILES
-        src/View/Main.qml
-        src/View/Theme.qml
-        src/View/DarkButton.qml
-        src/View/ToolIconButton.qml
-        src/View/ClipLoopToggle.qml
-        src/View/NumericValueField.qml
-        src/View/LevelMeterBar.qml
-        src/View/TimelineStrip.qml
-        src/View/DetachablePanelHost.qml
-        src/View/TransportBar.qml
-        src/View/WaveformPanel.qml
-        src/View/SpectrumPanel.qml
-        src/View/ProjectsPanel.qml
-        src/View/LibraryPanel.qml
-        src/View/TrackMixerList.qml
-)
-
-set_source_files_properties(src/View/Theme.qml PROPERTIES
-    QT_QML_SINGLETON_TYPE TRUE
-)
-
 target_link_libraries(MixingStudio
     PRIVATE
+        MixingStudioQml
+        MixingStudioQmlplugin
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
@@ -245,30 +236,32 @@ set_tests_properties(common_types PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
 )
 
-add_executable(test_commands
-    tests/test_commands.cpp
-    ${MIXING_STUDIO_COMMAND_SOURCES}
+add_executable(test_viewmodel_commands
+    tests/test_viewmodel_commands.cpp
+    ${MIXING_STUDIO_VIEWMODEL_SOURCES}
     ${MIXING_STUDIO_MODEL_SOURCES}
     ${MIXING_STUDIO_DSP_SOURCES}
 )
 
-set_target_properties(test_commands PROPERTIES AUTOMOC ON)
+set_target_properties(test_viewmodel_commands PROPERTIES AUTOMOC ON)
 
-target_include_directories(test_commands
+target_include_directories(test_viewmodel_commands
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(test_commands
+target_link_libraries(test_viewmodel_commands
     PRIVATE
         Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
         Qt6::Sql
         Qt6::Multimedia
 )
 
-add_test(NAME commands COMMAND test_commands)
+add_test(NAME viewmodel_commands COMMAND test_viewmodel_commands)
 
-set_tests_properties(commands PROPERTIES
+set_tests_properties(viewmodel_commands PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
 )
 
@@ -337,6 +330,52 @@ target_link_libraries(test_automation
 )
 
 add_test(NAME automation COMMAND test_automation)
+
+# UI automation: open Main window, drive Demo/Play/Stop/Master/Seek via QTest mouse+keyboard
+add_executable(test_ui_binder
+    tests/test_ui_binder.cpp
+    include/App/MixingStudioApp.h
+    src/App/MixingStudioApp.cpp
+    ${MIXING_STUDIO_VIEWMODEL_SOURCES}
+    ${MIXING_STUDIO_MODEL_SOURCES}
+    ${MIXING_STUDIO_DSP_SOURCES}
+)
+
+set_target_properties(test_ui_binder PROPERTIES AUTOMOC ON)
+
+target_include_directories(test_ui_binder
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(test_ui_binder
+    PRIVATE
+        MixingStudioQml
+        MixingStudioQmlplugin
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Quick
+        Qt6::QuickControls2
+        Qt6::Sql
+        Qt6::Multimedia
+        Qt6::Test
+)
+
+target_compile_definitions(test_ui_binder
+    PRIVATE
+        MIXINGSTUDIO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+add_test(NAME ui_binder COMMAND test_ui_binder)
+
+set_tests_properties(ui_binder PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    TIMEOUT 120
+)
+set_property(TEST ui_binder APPEND PROPERTY ENVIRONMENT "MIXINGSTUDIO_UI_HEADLESS=1")
+set_property(TEST ui_binder APPEND PROPERTY ENVIRONMENT "MIXINGSTUDIO_UI_PLAY_MS=3000")
 
 add_executable(test_audio_pipeline_e2e
     tests/test_audio_pipeline_e2e.cpp

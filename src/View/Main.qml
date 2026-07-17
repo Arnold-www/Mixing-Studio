@@ -4,8 +4,11 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import MixingStudio
 
+// Pure View root. MixingStudioViewBinder connects root signals/properties.
+// No ViewModel injection / ContextProperty / setInitialProperties.
 ApplicationWindow {
     id: window
+    objectName: "mainWindow"
     width: 1480
     height: 920
     minimumWidth: 1100
@@ -19,6 +22,66 @@ ApplicationWindow {
     Material.background: "#0a0c10"
     Material.foreground: "#e6ebf2"
     Material.elevation: 0
+
+    // --- Inbound UI state (Binder setProperty ↔ViewModel) ---
+    property bool playing: false
+    property string playbackTimeText: ""
+    property real masterVolume: 1.0
+    property real vuLevel: 0.0
+    property bool mockValidationMode: false
+
+    property real playbackProgress: 0
+    property bool loopEnabled: false
+    property real loopStartProgress: 0
+    property real loopEndProgress: 1
+
+    property var waveformPoints: []
+    property var automationPoints: []
+    property var spectrumLevels: []
+
+    property var tracks: []
+    property int selectedTrackIndex: -1
+    property bool anySolo: false
+
+    property string statusMessage: ""
+
+    property string assetSearchText: ""
+    property var assetNames: []
+    property int selectedAssetIndex: -1
+
+    property var projectNames: []
+    property int selectedRecentProjectIndex: -1
+
+    // --- Outbound user actions (Binder connect ↔ViewModel) ---
+    signal importFilesRequested(var urls)
+    signal demoRequested()
+    signal sampleRequested()
+    signal saveRequested()
+    signal exportRequested()
+    signal playRequested()
+    signal pauseRequested()
+    signal stopRequested()
+    signal masterVolumeEdited(real value)
+    signal mockToggled()
+
+    signal seekRequested(real progress)
+    signal loopRangeRequested(real startProgress, real endProgress)
+    signal loopEnabledToggled()
+
+    signal addAutomationRequested(real progress, real value)
+    signal moveAutomationRequested(int pointIndex, real progress, real value)
+
+    signal trackSelected(int index)
+    signal clearAutomationRequested()
+    signal deleteTrackRequested()
+
+    signal searchTextEdited(string text)
+    signal assetIndexSelected(int index)
+    signal importAssetRequested()
+
+    signal projectIndexSelected(int index)
+    signal restoreProjectRequested()
+    signal deleteProjectRequested()
 
     background: Rectangle {
         anchors.fill: parent
@@ -39,9 +102,25 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 52
                 Layout.maximumHeight: 52
+
+                playing: window.playing
+                playbackTimeText: window.playbackTimeText
+                masterVolume: window.masterVolume
+                vuLevel: window.vuLevel
+                mockValidationMode: window.mockValidationMode
+
+                onImportFilesRequested: (urls) => window.importFilesRequested(urls)
+                onDemoRequested: window.demoRequested()
+                onSampleRequested: window.sampleRequested()
+                onSaveRequested: window.saveRequested()
+                onExportRequested: window.exportRequested()
+                onPlayRequested: window.playRequested()
+                onPauseRequested: window.pauseRequested()
+                onStopRequested: window.stopRequested()
+                onMasterVolumeEdited: (value) => window.masterVolumeEdited(value)
+                onMockToggled: window.mockToggled()
             }
 
-            // One stage card: timeline + waveform (shared chrome, no stacked frames)
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 300
@@ -61,22 +140,23 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         spacing: 12
                         Label {
-                            text: mixerViewModel.playing ? "Waveform  ·  live" : "Waveform  ·  overview"
+                            text: window.playing ? "Waveform  ·  live" : "Waveform  ·  overview"
                             color: "#ffffff"
                             font.pixelSize: 12
                             font.bold: true
                         }
                         Label {
                             Layout.fillWidth: true
-                            text: mixerViewModel.statusMessage
+                            text: window.statusMessage
                             color: "#c5cede"
                             font.pixelSize: 11
                             elide: Text.ElideRight
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Label {
-                            text: mixerViewModel.selectedTrackIndex >= 0
-                                  ? ("Track " + (mixerViewModel.selectedTrackIndex + 1) + "  ·  click plot to edit automation")
+                            text: window.selectedTrackIndex >= 0
+                                  ? ("Track " + (window.selectedTrackIndex + 1)
+                                     + "  ·  click plot to edit automation")
                                   : "Select a track to edit automation"
                             color: "#c5cede"
                             font.pixelSize: 12
@@ -89,6 +169,16 @@ ApplicationWindow {
                         Layout.minimumHeight: 40
                         Layout.maximumHeight: 64
                         z: 2
+
+                        playbackProgress: window.playbackProgress
+                        loopEnabled: window.loopEnabled
+                        loopStartProgress: window.loopStartProgress
+                        loopEndProgress: window.loopEndProgress
+
+                        onSeekRequested: (progress) => window.seekRequested(progress)
+                        onLoopRangeRequested: (startProgress, endProgress) =>
+                            window.loopRangeRequested(startProgress, endProgress)
+                        onLoopEnabledToggled: window.loopEnabledToggled()
                     }
 
                     Rectangle {
@@ -97,7 +187,6 @@ ApplicationWindow {
                         color: "#2a3140"
                     }
 
-                    // Wrapper owns Layout size; Waveform fills wrapper only (clip).
                     Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -106,20 +195,36 @@ ApplicationWindow {
 
                         WaveformPanel {
                             anchors.fill: parent
+                            playing: window.playing
+                            playbackProgress: window.playbackProgress
+                            waveformPoints: window.waveformPoints
+                            automationPoints: window.automationPoints
+                            selectedTrackIndex: window.selectedTrackIndex
+
+                            onAddAutomationRequested: (progress, value) =>
+                                window.addAutomationRequested(progress, value)
+                            onMoveAutomationRequested: (pointIndex, progress, value) =>
+                                window.moveAutomationRequested(pointIndex, progress, value)
                         }
                     }
                 }
             }
 
-            // Track mixer — full-width rows under waveform
             TrackMixerList {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.minimumHeight: 220
+
+                tracks: window.tracks
+                selectedTrackIndex: window.selectedTrackIndex
+                anySolo: window.anySolo
+
+                onTrackSelected: (index) => window.trackSelected(index)
+                onClearAutomationRequested: window.clearAutomationRequested()
+                onDeleteTrackRequested: window.deleteTrackRequested()
             }
         }
 
-        // Left drawer: Library / Projects (VS Code–style side panel)
         Rectangle {
             id: leftDrawer
             anchors.top: parent.top
@@ -164,6 +269,7 @@ ApplicationWindow {
                 }
 
                 Loader {
+                    id: sidePanelLoader
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     active: leftDrawer.width > 40
@@ -174,7 +280,6 @@ ApplicationWindow {
             }
         }
 
-        // Right drawer: Spectrum (optional, not crowding main desk)
         Rectangle {
             id: rightDrawer
             anchors.top: parent.top
@@ -203,6 +308,8 @@ ApplicationWindow {
                 SpectrumPanel {
                     anchors.fill: parent
                     showCloseButton: true
+                    playing: window.playing
+                    spectrumLevels: window.spectrumLevels
                     onCloseRequested: transport.spectrumOpen = false
                 }
             }
@@ -211,10 +318,26 @@ ApplicationWindow {
 
     Component {
         id: libraryComp
-        LibraryPanel {}
+        LibraryPanel {
+            searchText: window.assetSearchText
+            assetNames: window.assetNames
+            selectedIndex: window.selectedAssetIndex
+            onSearchTextEdited: (text) => window.searchTextEdited(text)
+            onAssetIndexSelected: (index) => window.assetIndexSelected(index)
+            onImportRequested: window.importAssetRequested()
+        }
     }
     Component {
         id: projectsComp
-        ProjectsPanel {}
+        ProjectsPanel {
+            projectNames: window.projectNames
+            selectedIndex: window.selectedRecentProjectIndex
+            onProjectIndexSelected: (index) => window.projectIndexSelected(index)
+            onRestoreRequested: window.restoreProjectRequested()
+            onDeleteRequested: window.deleteProjectRequested()
+            onLoadSampleRequested: window.sampleRequested()
+            onSaveRequested: window.saveRequested()
+            onExportRequested: window.exportRequested()
+        }
     }
 }
