@@ -4,11 +4,13 @@
 
 `.github/workflows/ci.yml` 在以下场景运行：
 
-- 向 `main`、`ci/**` 或 `feature/**` 推送提交；
+- 向 `main` 推送提交；
 - 创建或更新 Pull Request；
 - 在 GitHub Actions 页面手动触发。
 
 每次运行都会在 Ubuntu 24.04、Windows Server 2022 和 macOS 14 上安装 Qt 6.8.3，完成 Release 构建，并运行全部 CTest。CI 默认只有 `contents: read` 权限。
+
+功能分支由 Pull Request 触发，不再同时响应分支 push，避免同一提交重复运行两组三平台任务。
 
 建议把三个 `CI / Linux`、`CI / Windows`、`CI / macOS` check 配置为 `main` 的 required status checks。
 
