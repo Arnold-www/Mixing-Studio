@@ -1064,6 +1064,7 @@ QString RealMixerViewModel::samplesDirectory() const
     const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList candidates = {
         QDir(appDir).filePath(QStringLiteral("samples")),
+        QDir(appDir).filePath(QStringLiteral("../Resources/samples")),
         QDir(appDir).filePath(QStringLiteral("../samples")),
         QDir(appDir).filePath(QStringLiteral("../../samples")),
         QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(QStringLiteral("../../../samples")),

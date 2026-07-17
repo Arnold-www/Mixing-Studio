@@ -1,5 +1,7 @@
 # Mixing Studio
 
+[![CI](https://github.com/Arnold-www/Mixing-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Arnold-www/Mixing-Studio/actions/workflows/ci.yml)
+
 基于 Qt 6、C++17、QML 与五层 MVVM（`App / View / ViewModel / Model / Common`）的多轨调音项目。
 
 View 为纯 QML（无 ViewModel 注入）。App 加载 Main 后由 `MixingStudioViewBinder` 完成根 signal/property 与 ViewModel slots 的连接；ViewModel 不含任何 View 引用。
@@ -37,3 +39,9 @@ View 为纯 QML（无 ViewModel 注入）。App 加载 Main 后由 `MixingStudio
 ```
 
 若需把 Qt DLL 拷到 exe 旁以便直接双击运行：`.\scripts\run_app.ps1 -Deploy`。
+
+## CI/CD
+
+- Pull Request 与推送会在 Ubuntu、Windows、macOS 上完成 Release 构建并运行全部 CTest。
+- 推送形如 `v0.1.0` 的标签会构建三平台安装目录、生成压缩包，并自动创建 GitHub Release。
+- 也可以从 Actions 页面手动运行 CI；完整说明见 [`docs/CI_CD.md`](docs/CI_CD.md)。
